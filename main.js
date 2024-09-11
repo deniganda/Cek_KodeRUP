@@ -1,4 +1,4 @@
-require('dotenv').config();
+require('dotenv').config({ path: './config.env' });  // Load environment variables from config.env
 const fs = require('fs');
 const TelegramBot = require('node-telegram-bot-api');
 const { checkKodeRup } = require('./commands/rup');
