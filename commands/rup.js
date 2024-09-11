@@ -1,21 +1,23 @@
 const axios = require('axios');
 const cheerio = require('cheerio');
 
-const TARGET_KLPD = process.env.TARGET_KLPD;
 const MAX_RETRIES = 3;
 
 // Function to check Kode RUP in both Penyedia and Swakelola
-async function checkKodeRup(kodeRup) {
+async function checkKodeRup(kodeRup, targetKLPD) {
     const types = ['Penyedia', 'Swakelola'];
     let result = null;
+
+    // Convert the user's targetKLPD to lowercase for case-insensitive comparison
+    const targetKLPDLowerCase = targetKLPD.toLowerCase();
 
     for (const type of types) {
         const url = `https://sirup.lkpp.go.id/sirup/home/detailPaket${type}Public2017/${kodeRup}`;
         console.log(`Visiting URL: ${url}`);
 
-        result = await fetchData(url, type, kodeRup);
-        if (result && (!TARGET_KLPD || !result.includes('Kode RUP tidak ditemukan'))) {
-            return result; // Return if valid result is found
+        result = await fetchData(url, type, kodeRup, targetKLPDLowerCase);
+        if (result && !result.includes('Kode RUP tidak ditemukan')) {
+            return result; // Return if a valid result is found
         }
     }
 
@@ -23,7 +25,7 @@ async function checkKodeRup(kodeRup) {
 }
 
 // Fetch data function with retry mechanism
-async function fetchData(url, type, kodeRup, retries = MAX_RETRIES) {
+async function fetchData(url, type, kodeRup, targetKLPDLowerCase, retries = MAX_RETRIES) {
     try {
         const response = await axios.get(url, {
             headers: {
@@ -47,12 +49,19 @@ async function fetchData(url, type, kodeRup, retries = MAX_RETRIES) {
             }
         });
 
-        // Additional logic here for Penyedia and Swakelola
-        return formatResponse(data, type);
+        // Ensure the comparison is case-insensitive by converting both KLPD names to lowercase
+        const scrapedKLPD = data['Nama KLPD'] ? data['Nama KLPD'].toLowerCase() : '';
+
+        // Only return the result if the scraped KLPD matches the target KLPD (case-insensitive)
+        if (scrapedKLPD.includes(targetKLPDLowerCase)) {
+            return formatResponse(data, type);
+        } else {
+            return 'Kode RUP tidak ditemukan pada KLPD yang ditetapkan.';
+        }
     } catch (error) {
         if (retries > 0) {
             await new Promise(resolve => setTimeout(resolve, 2000));
-            return fetchData(url, type, kodeRup, retries - 1);
+            return fetchData(url, type, kodeRup, targetKLPDLowerCase, retries - 1);
         }
         return `Kode RUP tidak ditemukan pada ${type}.`;
     }
@@ -65,13 +74,15 @@ function formatResponse(data, type) {
         currency: 'IDR',
     });
 
-    return `[${type}]\n`
-        + `[Kode RUP]\n${data['Kode RUP'] || 'Tidak tersedia'}\n`
-        + `[Satuan Kerja]\n${data['Satuan Kerja'] || 'Tidak tersedia'}\n`
-        + `[Nama KLPD]\n${data['Nama KLPD'] || 'Tidak tersedia'}\n`
-        + `[Nama Paket]\n${data['Nama Paket'] || 'Tidak tersedia'}\n`
-        + `[Tahun Anggaran]\n${data['Tahun Anggaran'] || 'Tidak tersedia'}\n`
-        + `[Total Pagu]\n${data['Total Pagu'] ? formatter.format(parseInt(data['Total Pagu'].replace(/\D/g, ''))) : 'Tidak tersedia'}\n`;
+    return `[${type}]\n\n`
+    + `[Kode RUP]\n${data['Kode RUP'] || 'Tidak tersedia'}\n=================\n`
+    + `[Satuan Kerja]\n${data['Satuan Kerja'] || 'Tidak tersedia'}\n=================\n`
+    + `[Nama KLPD]\n${data['Nama KLPD'] || 'Tidak tersedia'}\n=================\n`
+    + `[Nama Paket]\n${data['Nama Paket'] || 'Tidak tersedia'}\n=================\n`
+    + `[Tahun Anggaran]\n${data['Tahun Anggaran'] || 'Tidak tersedia'}\n=================\n`
+    + `[Jenis Pengadaan]\n${data['Jenis Pengadaan'] || 'Tidak tersedia'}\n=================\n`
+    + `[Metode Pemilihan]\n${data['Metode Pemilihan'] || 'Tidak tersedia'}\n=================\n`
+    + `[Total Pagu]\n${data['Total Pagu'] ? formatter.format(parseInt(data['Total Pagu'].replace(/\D/g, ''))) : 'Tidak tersedia'}\n`;
 }
 
 module.exports = { checkKodeRup };
