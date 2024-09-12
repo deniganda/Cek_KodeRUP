@@ -1,10 +1,10 @@
 {
-  "name": "cek_koderup",
+  "name": "telegram-bot",
   "version": "1.0.0",
-  "description": "Telegram Bot untuk melihat detail dari Kode RUP",
+  "description": "My Telegram Bot",
   "main": "main.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node main.js"  
   },
   "author": "",
   "license": "ISC",

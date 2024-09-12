@@ -53,14 +53,27 @@ bot.on('message', (msg) => {
     }
 });
 
+// Command to test if the bot is working
+bot.onText(/\/ping/, (msg) => {
+    const chatId = msg.chat.id;
+    bot.sendMessage(chatId, "Bot berjalan dengan baik.");
+});
 
 // Command to check RUP codes
-bot.onText(/\/rup (.+)/, async (msg, match) => {
+bot.onText(/\/rup(?:\s+(.+))?/, async (msg, match) => {
     const chatId = msg.chat.id;
-    const searchText = match[1].trim();
+    const searchText = match[1] ? match[1].trim() : '';
+
+    // If no input is provided after /rup
+    if (!searchText) {
+        bot.sendMessage(chatId, 'Silakan masukkan kode RUP setelah perintah ini, pastikan setiap kode terdiri dari 8 digit angka dan dipisahkan dengan spasi. Contoh: /rup 12341234 56785678.');
+        return;
+    }
+
     const kodeRups = searchText.split(' ').filter(code => code !== '');
 
-    if (kodeRups.length === 0 || !kodeRups.every(code => /^\d{8}$/.test(code))) {
+    // Check if all codes are valid (8-digit numbers)
+    if (!kodeRups.every(code => /^\d{8}$/.test(code))) {
         bot.sendMessage(chatId, 'Kode RUP harus terdiri dari 8 digit angka dan dipisahkan dengan spasi.');
         return;
     }
@@ -76,7 +89,7 @@ bot.onText(/\/rup (.+)/, async (msg, match) => {
         for (const kodeRup of kodeRups) {
             const result = await checkKodeRup(kodeRup, userTargetKLPD);
             await bot.sendMessage(chatId, result);
-            await new Promise(resolve => setTimeout(resolve, 1000));  // 1-second delay between messages
+            await new Promise(resolve => setTimeout(resolve, 100));  // 0.1-second delay between messages
         }
     } catch (error) {
         console.error('Error:', error.message);
