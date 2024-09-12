@@ -24,7 +24,7 @@ const saveUserSettings = () => {
 const awaitingKLPDInput = {};
 
 // Command to start the process of setting TARGET_KLPD
-bot.onText(/\/set_klpd/, (msg) => {
+bot.onText(/\/set klpd/, (msg) => {
     const chatId = msg.chat.id;
 
     // Notify the user and prompt them to input their KLPD
