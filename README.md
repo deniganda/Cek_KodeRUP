@@ -27,7 +27,16 @@ Bot Telegram ini dirancang untuk memeriksa Kode RUP (Rencana Umum Pengadaan) dar
   
    ```bash
    cp config_sample.env config.env
+   ```
 
+   Setelah menyalin, buka file config.env dengan editor teks dan isi TELEGRAM_BOT_TOKEN dengan token bot Telegram Anda:
+
+   ```bash
+   TELEGRAM_BOT_TOKEN="your_telegram_bot_token_here"
+   ```
+   Pastikan untuk mengganti your_telegram_bot_token_here dengan token bot Telegram yang Anda dapatkan dari BotFather.
+
+   
 4. **Jalankan Bot:**
   
    ```bash
