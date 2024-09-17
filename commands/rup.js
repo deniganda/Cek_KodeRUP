@@ -16,6 +16,8 @@ async function checkKodeRup(kodeRup, targetKLPD) {
         console.log(`Visiting URL: ${url}`);
 
         result = await fetchData(url, type, kodeRup, targetKLPDLowerCase);
+        console.log(`Result for ${type}:`, result);
+
         if (result && !result.includes('Kode RUP tidak ditemukan')) {
             return result; // Return if a valid result is found
         }
@@ -35,6 +37,10 @@ async function fetchData(url, type, kodeRup, targetKLPDLowerCase, retries = MAX_
             }
         });
 
+        console.log(`Fetched data from URL: ${url}`);
+        console.log(`Response Status: ${response.status}`);
+        console.log(`Response Data (snippet): ${response.data.substring(0, 500)}`); // Log a snippet of the response data
+
         const $ = cheerio.load(response.data);
         const data = {};
 
@@ -49,8 +55,12 @@ async function fetchData(url, type, kodeRup, targetKLPDLowerCase, retries = MAX_
             }
         });
 
+        console.log(`Extracted Data:`, data);
+
         // Ensure the comparison is case-insensitive by converting both KLPD names to lowercase
         const scrapedKLPD = data['Nama KLPD'] ? data['Nama KLPD'].toLowerCase() : '';
+        console.log(`Scraped KLPD: ${scrapedKLPD}`);
+        console.log(`Target KLPD: ${targetKLPDLowerCase}`);
 
         // Only return the result if the scraped KLPD matches the target KLPD (case-insensitive)
         if (scrapedKLPD.includes(targetKLPDLowerCase)) {
@@ -59,6 +69,7 @@ async function fetchData(url, type, kodeRup, targetKLPDLowerCase, retries = MAX_
             return 'Kode RUP tidak ditemukan pada KLPD yang ditetapkan.';
         }
     } catch (error) {
+        console.error(`Error fetching data from ${url}:`, error.message);
         if (retries > 0) {
             await new Promise(resolve => setTimeout(resolve, 2000));
             return fetchData(url, type, kodeRup, targetKLPDLowerCase, retries - 1);
@@ -67,12 +78,27 @@ async function fetchData(url, type, kodeRup, targetKLPDLowerCase, retries = MAX_
     }
 }
 
-// Function to format the response with HTML
+// Function to format the response
 function formatResponse(data, type) {
     const formatter = new Intl.NumberFormat('id-ID', {
         style: 'currency',
         currency: 'IDR',
     });
+
+    // Extract text starting from '1.' to the end and format it neatly
+    const extractPaketTerkonsolidasi = (text) => {
+        const match = text.match(/1\..*/s); // Capture everything from '1.' to the end
+        if (!match) return 'Bukan Paket Konsolidasi';
+
+        // Clean and format the extracted text
+        const formattedText = match[0]
+            .split('\n')
+            .map(line => line.trim())
+            .filter(line => line.length > 0)
+            .join('\n');
+
+        return formattedText;
+    };
 
     return `<b>[${type}]</b>\n\n`
         + `<b>Kode RUP:</b> <blockquote expandable>${data['Kode RUP'] || 'Tidak tersedia'}</blockquote>\n`
@@ -85,6 +111,11 @@ function formatResponse(data, type) {
         + `<b>Total Pagu:</b> <blockquote expandable>${data['Total Pagu'] ? formatter.format(parseInt(data['Total Pagu'].replace(/\D/g, ''))) : 'Tidak tersedia'}</blockquote>\n`
         + `<b>History Paket:</b> <blockquote expandable>${data['History Paket'] || 'Tidak tersedia'}</blockquote>\n`
     ;
+}
+
+function extractPaketTerkonsolidasi(text) {
+    const match = text.match(/1\..*/);
+    return match ? match[0] : text;
 }
 
 module.exports = { checkKodeRup };
