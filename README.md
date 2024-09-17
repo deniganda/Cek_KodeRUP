@@ -13,7 +13,7 @@ Bot Telegram ini dirancang untuk memeriksa Kode RUP (Rencana Umum Pengadaan) dar
 1. **Clone Repository:**
 
    ```bash
-   git clone https://github.com/username/repository.git
+   git clone git@github.com:deniganda/Cek_KodeRUP.git
    cd repository
 
 2. **Instalasi Dependensi:**
