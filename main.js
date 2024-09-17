@@ -39,6 +39,14 @@ bot.on('message', (msg) => {
     const chatId = msg.chat.id;
     const text = msg.text.trim();
 
+    // Check if the message is another command (starts with "/")
+    if (text.startsWith('/') && awaitingKLPDInput[chatId]) {
+        // Cancel the KLPD input process if another command is issued
+        bot.sendMessage(chatId, 'Proses pengaturan KLPD dibatalkan.');
+        delete awaitingKLPDInput[chatId];  // Reset awaiting status
+        return;
+    }
+
     // Check if the user is awaiting KLPD input
     if (awaitingKLPDInput[chatId]) {
         // Store the TARGET_KLPD for this user
