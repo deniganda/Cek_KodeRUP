@@ -21,7 +21,7 @@ async function checkKodeRup(kodeRup, targetKLPD) {
         }
     }
 
-    return 'Kode RUP tidak ditemukan pada Penyedia dan Swakelola.';
+    return `Kode RUP ${kodeRup} tidak ditemukan pada Penyedia dan Swakelola.`;
 }
 
 // Fetch data function with retry mechanism
