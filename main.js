@@ -24,7 +24,7 @@ const saveUserSettings = () => {
 const awaitingKLPDInput = {};
 
 // Command to start the process of setting TARGET_KLPD
-bot.onText(/\/set klpd/, (msg) => {
+bot.onText(/\/set_klpd/, (msg) => {
     const chatId = msg.chat.id;
 
     // Notify the user and prompt them to input their KLPD
@@ -46,7 +46,8 @@ bot.on('message', (msg) => {
         saveUserSettings();  // Save the settings to the file
 
         // Confirm that the KLPD has been set
-        bot.sendMessage(chatId, `Nama KLPD telah disimpan: ${text}. Nama KLPD ini yang akan dijadikan patokan dalam pencarian Kode RUP selanjutnya.`);
+        bot.sendMessage(chatId, `<b>Nama KLPD telah disimpan:</b> <blockquote>${text}</blockquote><br>Nama KLPD ini yang akan dijadikan patokan dalam pencarian Kode RUP selanjutnya.`, { parse_mode: 'HTML' });
+
         
         // Reset the awaiting status for this user
         delete awaitingKLPDInput[chatId];
@@ -88,7 +89,7 @@ bot.onText(/\/rup(?:\s+(.+))?/, async (msg, match) => {
     try {
         for (const kodeRup of kodeRups) {
             const result = await checkKodeRup(kodeRup, userTargetKLPD);
-            await bot.sendMessage(chatId, result);
+            await bot.sendMessage(chatId, result, { parse_mode: 'HTML' });
             await new Promise(resolve => setTimeout(resolve, 100));  // 0.1-second delay between messages
         }
     } catch (error) {

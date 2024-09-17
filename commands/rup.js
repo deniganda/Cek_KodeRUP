@@ -67,22 +67,22 @@ async function fetchData(url, type, kodeRup, targetKLPDLowerCase, retries = MAX_
     }
 }
 
-// Function to format the response
+// Function to format the response with HTML
 function formatResponse(data, type) {
     const formatter = new Intl.NumberFormat('id-ID', {
         style: 'currency',
         currency: 'IDR',
     });
 
-    return `[${type}]\n\n`
-    + `[Kode RUP]\n${data['Kode RUP'] || 'Tidak tersedia'}\n=================\n`
-    + `[Satuan Kerja]\n${data['Satuan Kerja'] || 'Tidak tersedia'}\n=================\n`
-    + `[Nama KLPD]\n${data['Nama KLPD'] || 'Tidak tersedia'}\n=================\n`
-    + `[Nama Paket]\n${data['Nama Paket'] || 'Tidak tersedia'}\n=================\n`
-    + `[Tahun Anggaran]\n${data['Tahun Anggaran'] || 'Tidak tersedia'}\n=================\n`
-    + `[Jenis Pengadaan]\n${data['Jenis Pengadaan'] || 'Tidak tersedia'}\n=================\n`
-    + `[Metode Pemilihan]\n${data['Metode Pemilihan'] || 'Tidak tersedia'}\n=================\n`
-    + `[Total Pagu]\n${data['Total Pagu'] ? formatter.format(parseInt(data['Total Pagu'].replace(/\D/g, ''))) : 'Tidak tersedia'}\n`;
+    return `<b>[${type}]</b>\n\n`
+        + `<b>Kode RUP:</b> <blockquote>${data['Kode RUP'] || 'Tidak tersedia'}</blockquote>\n`
+        + `<b>Satuan Kerja:</b> <blockquote>${data['Satuan Kerja'] || 'Tidak tersedia'}</blockquote>\n`
+        + `<b>Nama KLPD:</b> <blockquote>${data['Nama KLPD'] || 'Tidak tersedia'}</blockquote>\n`
+        + `<b>Nama Paket:</b> <blockquote>${data['Nama Paket'] || 'Tidak tersedia'}</blockquote>\n`
+        + `<b>Tahun Anggaran:</b> <blockquote>${data['Tahun Anggaran'] || 'Tidak tersedia'}</blockquote>\n`
+        + `<b>Jenis Pengadaan:</b> <blockquote>${data['Jenis Pengadaan'] || 'Tidak tersedia'}</blockquote>\n`
+        + `<b>Metode Pemilihan:</b> <blockquote>${data['Metode Pemilihan'] || 'Tidak tersedia'}</blockquote>\n`
+        + `<b>Total Pagu:</b> <blockquote>${data['Total Pagu'] ? formatter.format(parseInt(data['Total Pagu'].replace(/\D/g, ''))) : 'Tidak tersedia'}</blockquote>\n`;
 }
 
 module.exports = { checkKodeRup };
