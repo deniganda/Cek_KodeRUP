@@ -12,7 +12,7 @@ async function checkKodeRup(kodeRup, targetKLPD) {
     const targetKLPDLowerCase = targetKLPD.toLowerCase();
 
     for (const type of types) {
-        const url = `https://sirup.lkpp.go.id/sirup/home/detailPaket${type}Public2017/${kodeRup}`;
+        const url = getUrlForType(type, kodeRup);
         console.log(`Visiting URL: ${url}`);
 
         result = await fetchData(url, type, kodeRup, targetKLPDLowerCase);
@@ -24,6 +24,16 @@ async function checkKodeRup(kodeRup, targetKLPD) {
     }
 
     return `Kode RUP ${kodeRup} tidak ditemukan pada Penyedia dan Swakelola.`;
+}
+
+// Function to get the URL based on type
+function getUrlForType(type, kodeRup) {
+    if (type === 'Penyedia') {
+        return `https://sirup.lkpp.go.id/sirup/home/detailPaketPenyediaPublic2017/${kodeRup}`;
+    } else if (type === 'Swakelola') {
+        return `https://sirup.lkpp.go.id/sirup/home/detailPaketSwakelolaPublic2017?idPaket=${kodeRup}`;
+    }
+    return '';
 }
 
 // Fetch data function with retry mechanism
@@ -44,30 +54,62 @@ async function fetchData(url, type, kodeRup, targetKLPDLowerCase, retries = MAX_
         const $ = cheerio.load(response.data);
         const data = {};
 
-        $('table.table tr').each((index, row) => {
-            const columns = $(row).find('td');
-            if (columns.length < 2) return;
+        if (type === 'Penyedia') {
+            // Extract data for 'Penyedia' using table rows
+            $('table.table tr').each((index, row) => {
+                const columns = $(row).find('td');
+                if (columns.length < 2) return;
 
-            const key = $(columns[0]).text().trim();
-            const value = $(columns[1]).text().trim();
-            if (key && value) {
-                data[key] = value;
+                const key = $(columns[0]).text().trim();
+                const value = $(columns[1]).text().trim();
+                if (key && value) {
+                    data[key] = value;
+                }
+            });
+
+            console.log(`Extracted Data (Penyedia):`, data);
+
+            const scrapedKLPD = data['Nama KLPD'] ? data['Nama KLPD'].toLowerCase() : '';
+            console.log(`Scraped Nama KLPD: ${scrapedKLPD}`);
+            console.log(`Target KLPD: ${targetKLPDLowerCase}`);
+
+            // Compare 'Nama KLPD' for Penyedia
+            if (scrapedKLPD.includes(targetKLPDLowerCase)) {
+                return formatResponse(data, type);
+            } else {
+                return 'Kode RUP tidak ditemukan pada KLPD yang ditetapkan.';
             }
-        });
-
-        console.log(`Extracted Data:`, data);
-
-        // Ensure the comparison is case-insensitive by converting both KLPD names to lowercase
-        const scrapedKLPD = data['Nama KLPD'] ? data['Nama KLPD'].toLowerCase() : '';
-        console.log(`Scraped KLPD: ${scrapedKLPD}`);
-        console.log(`Target KLPD: ${targetKLPDLowerCase}`);
-
-        // Only return the result if the scraped KLPD matches the target KLPD (case-insensitive)
-        if (scrapedKLPD.includes(targetKLPDLowerCase)) {
-            return formatResponse(data, type);
-        } else {
-            return 'Kode RUP tidak ditemukan pada KLPD yang ditetapkan.';
         }
+
+        if (type === 'Swakelola') {
+            // Extract data for 'Swakelola' using the dl-horizontal structure
+            $('dl.dl-horizontal dt').each((index, element) => {
+                let key = $(element).text().trim();
+                let value = $(element).next('dd').text().trim();
+        
+                // Clean the key and value by removing leading or trailing colons and spaces
+                key = key.replace(/:$/, '').trim();  // Remove any trailing colon
+                value = value.replace(/^: /, '').trim();  // Remove any leading colon and space from value
+        
+                if (key && value) {
+                    data[key] = value;
+                }
+            });
+        
+            console.log(`Extracted Data (Swakelola):`, data);
+        
+            const scrapedKLDI = data['KLDI'] ? data['KLDI'].toLowerCase() : '';
+            console.log(`Scraped KLDI: ${scrapedKLDI}`);
+            console.log(`Target KLPD: ${targetKLPDLowerCase}`);
+        
+            // Compare 'KLDI' for Swakelola
+            if (scrapedKLDI.includes(targetKLPDLowerCase)) {
+                return formatResponse(data, type);
+            } else {
+                return 'Kode RUP tidak ditemukan pada KLDI yang ditetapkan.';
+            }
+        }        
+
     } catch (error) {
         console.error(`Error fetching data from ${url}:`, error.message);
         if (retries > 0) {
@@ -78,44 +120,94 @@ async function fetchData(url, type, kodeRup, targetKLPDLowerCase, retries = MAX_
     }
 }
 
-// Function to format the response
+// Function to format Paket Terkonsolidasi with proper numbering and neat output
+function formatPaketTerkonsolidasi(text) {
+    const paketLines = text.split('\n').filter(line => line.trim() !== '');
+    let formattedText = '';
+    let currentNumber = 0;
+
+    for (let i = 0; i < paketLines.length; i++) {
+        const line = paketLines[i].trim();
+        if (/^\d+\./.test(line)) { // Match lines that start with a number followed by a period (e.g., "1.")
+            currentNumber++;
+            // Combine the next two lines into a single line with the correct format
+            const code = paketLines[i + 1].trim().replace(': ', '');  // Clean up the unwanted ": "
+            const description = paketLines[i + 2].trim().replace(': ', ''); // Clean up the unwanted ": "
+            formattedText += `${currentNumber}. ${code} ${description}\n`;
+            i += 2; // Skip the next two lines since they are part of the current item
+        }
+    }
+    return formattedText.trim();
+}
+
+
+// Function to format Sumber Dana data more neatly
+// Function to format Sumber Dana data more neatly with currency formatting for the Pagu value
+function formatSumberDana(text) {
+    const formatter = new Intl.NumberFormat('id-ID', {
+        style: 'currency',
+        currency: 'IDR',
+        minimumFractionDigits: 2,
+    });
+
+    const sumberDanaLines = text.split('\n').filter(line => line.trim() !== '');
+    let formattedText = '';
+    let currentNumber = 0;
+
+    for (let i = 0; i < sumberDanaLines.length; i++) {
+        const line = sumberDanaLines[i].trim();
+        if (/^\d+\./.test(line)) { // Match lines that start with a number followed by a period (e.g., "1.")
+            currentNumber++;
+            
+            const pagu = sumberDanaLines[i + 5].trim(); // Get the Pagu value
+            const formattedPagu = formatter.format(parseInt(pagu.replace(/\D/g, ''))); // Format Pagu using the currency formatter
+
+            formattedText += `${currentNumber}. ${sumberDanaLines[i + 1].trim()} (T.A. ${sumberDanaLines[i + 2].trim()}, ${sumberDanaLines[i + 3].trim()}, MAK ${sumberDanaLines[i + 4].trim()}, Pagu: ${formattedPagu})\n`;
+            i += 5; // Skip the next lines since they are part of the current item
+        }
+    }
+
+    return formattedText.trim();
+}
+
+
+// Function to format the response for Penyedia and Swakelola
 function formatResponse(data, type) {
     const formatter = new Intl.NumberFormat('id-ID', {
         style: 'currency',
         currency: 'IDR',
     });
 
-    // Extract text starting from '1.' to the end and format it neatly
-    const extractPaketTerkonsolidasi = (text) => {
-        const match = text.match(/1\..*/s); // Capture everything from '1.' to the end
-        if (!match) return 'Bukan Paket Konsolidasi';
-
-        // Clean and format the extracted text
-        const formattedText = match[0]
-            .split('\n')
-            .map(line => line.trim())
-            .filter(line => line.length > 0)
-            .join('\n');
-
-        return formattedText;
-    };
-
-    return `<b>[${type}]</b>\n\n`
-        + `<b>Kode RUP:</b> <blockquote expandable>${data['Kode RUP'] || 'Tidak tersedia'}</blockquote>\n`
-        + `<b>Nama KLPD:</b> <blockquote expandable>${data['Nama KLPD'] || 'Tidak tersedia'}</blockquote>\n`
-        + `<b>Satuan Kerja:</b> <blockquote expandable>${data['Satuan Kerja'] || 'Tidak tersedia'}</blockquote>\n`
-        + `<b>Nama Paket:</b> <blockquote expandable>${data['Nama Paket'] || 'Tidak tersedia'}</blockquote>\n`
-        + `<b>Paket Terkonsolidasi:</b> <blockquote expandable>${data['Paket Terkonsolidasi'] ? extractPaketTerkonsolidasi(data['Paket Terkonsolidasi']) : 'Bukan Paket Konsolidasi'}</blockquote>\n`
-        + `<b>Jenis Pengadaan:</b> <blockquote expandable>${data['Jenis Pengadaan'] || 'Tidak tersedia'}</blockquote>\n`
-        + `<b>Metode Pemilihan:</b> <blockquote expandable>${data['Metode Pemilihan'] || 'Tidak tersedia'}</blockquote>\n`
-        + `<b>Total Pagu:</b> <blockquote expandable>${data['Total Pagu'] ? formatter.format(parseInt(data['Total Pagu'].replace(/\D/g, ''))) : 'Tidak tersedia'}</blockquote>\n`
-        + `<b>History Paket:</b> <blockquote expandable>${data['History Paket'] || 'Tidak tersedia'}</blockquote>\n`
-    ;
+    // Define formatting based on the type
+    if (type === 'Penyedia') {
+        return `<b><u>${type}</u></b>\n\n`
+            + `<b>Kode RUP:</b> <blockquote expandable>${data['Kode RUP'] || 'Tidak tersedia'}</blockquote>\n`
+            + `<b>Nama KLPD:</b> <blockquote expandable>${data['Nama KLPD'] || 'Tidak tersedia'}</blockquote>\n`
+            + `<b>Satuan Kerja:</b> <blockquote expandable>${data['Satuan Kerja'] || 'Tidak tersedia'}</blockquote>\n`
+            + `<b>Nama Paket:</b> <blockquote expandable>${data['Nama Paket'] || 'Tidak tersedia'}</blockquote>\n`
+            + `<b>Tahun Anggaran:</b> <blockquote expandable>${data['Tahun Anggaran'] || 'Tidak tersedia'}</blockquote>\n`
+            + `<b>Pra DIPA / DPA:</b> <blockquote expandable>${data['Pra DIPA / DPA'] || 'Tidak tersedia'}</blockquote>\n`
+            + `<b>Paket Terkonsolidasi:</b> <blockquote expandable>${data['Paket Terkonsolidasi'] ? formatPaketTerkonsolidasi(data['Paket Terkonsolidasi']) : 'Bukan Paket Konsolidasi'}</blockquote>\n`            
+            + `<b>Jenis Pengadaan:</b> <blockquote expandable>${data['Jenis Pengadaan'] || 'Tidak tersedia'}</blockquote>\n`
+            + `<b>Metode Pemilihan:</b> <blockquote expandable>${data['Metode Pemilihan'] || 'Tidak tersedia'}</blockquote>\n`
+            + `<b>Total Pagu:</b> <blockquote expandable>${data['Total Pagu'] ? formatter.format(parseInt(data['Total Pagu'].replace(/\D/g, ''))) : 'Tidak tersedia'}</blockquote>\n`
+            + `<b>Sumber Dana:</b> <blockquote expandable>${formatSumberDana(data['Sumber Dana'])}</blockquote>\n`
+            + `<b>History Paket:</b> <blockquote expandable>${data['History Paket'] || 'Tidak tersedia'}</blockquote>\n`;
+    } else if (type === 'Swakelola') {
+        return `<b><u>${type}</u></b>\n\n`
+            + `<b>Kode RUP:</b> <blockquote expandable>${data['Kode RUP'] || 'Tidak tersedia'}</blockquote>\n`
+            + `<b>KLDI:</b> <blockquote expandable>${data['KLDI'] || 'Tidak tersedia'}</blockquote>\n`
+            + `<b>Satuan Kerja:</b> <blockquote expandable>${data['Satuan Kerja'] || 'Tidak tersedia'}</blockquote>\n`
+            + `<b>Nama Paket:</b> <blockquote expandable>${data['Nama Paket'] || 'Tidak tersedia'}</blockquote>\n`
+            + `<b>Tahun Anggaran:</b> <blockquote expandable>${data['Tahun Anggaran'] || 'Tidak tersedia'}</blockquote>\n`
+            + `<b>Tipe Swakelola:</b> <blockquote expandable>${data['Tipe Swakelola'] || 'Tidak tersedia'}</blockquote>\n`
+            + `<b>Penyelenggara Swakelola:</b> <blockquote expandable>${data['Penyelenggara Swakelola'] || 'Tidak tersedia'}</blockquote>\n`
+            + `<b>Lokasi:</b> <blockquote expandable>${data['Lokasi'] || 'Tidak tersedia'}</blockquote>\n`;
+    }
+    
+    return 'Data tidak tersedia.';
 }
 
-function extractPaketTerkonsolidasi(text) {
-    const match = text.match(/1\..*/);
-    return match ? match[0] : text;
-}
+
 
 module.exports = { checkKodeRup };
