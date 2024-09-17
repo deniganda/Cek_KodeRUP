@@ -75,14 +75,16 @@ function formatResponse(data, type) {
     });
 
     return `<b>[${type}]</b>\n\n`
-        + `<b>Kode RUP:</b> <blockquote>${data['Kode RUP'] || 'Tidak tersedia'}</blockquote>\n`
-        + `<b>Satuan Kerja:</b> <blockquote>${data['Satuan Kerja'] || 'Tidak tersedia'}</blockquote>\n`
-        + `<b>Nama KLPD:</b> <blockquote>${data['Nama KLPD'] || 'Tidak tersedia'}</blockquote>\n`
-        + `<b>Nama Paket:</b> <blockquote>${data['Nama Paket'] || 'Tidak tersedia'}</blockquote>\n`
-        + `<b>Tahun Anggaran:</b> <blockquote>${data['Tahun Anggaran'] || 'Tidak tersedia'}</blockquote>\n`
-        + `<b>Jenis Pengadaan:</b> <blockquote>${data['Jenis Pengadaan'] || 'Tidak tersedia'}</blockquote>\n`
-        + `<b>Metode Pemilihan:</b> <blockquote>${data['Metode Pemilihan'] || 'Tidak tersedia'}</blockquote>\n`
-        + `<b>Total Pagu:</b> <blockquote>${data['Total Pagu'] ? formatter.format(parseInt(data['Total Pagu'].replace(/\D/g, ''))) : 'Tidak tersedia'}</blockquote>\n`;
+        + `<b>Kode RUP:</b> <blockquote expandable>${data['Kode RUP'] || 'Tidak tersedia'}</blockquote>\n`
+        + `<b>Nama KLPD:</b> <blockquote expandable>${data['Nama KLPD'] || 'Tidak tersedia'}</blockquote>\n`
+        + `<b>Satuan Kerja:</b> <blockquote expandable>${data['Satuan Kerja'] || 'Tidak tersedia'}</blockquote>\n`
+        + `<b>Nama Paket:</b> <blockquote expandable>${data['Nama Paket'] || 'Tidak tersedia'}</blockquote>\n`
+        + `<b>Paket Terkonsolidasi:</b> <blockquote expandable>${data['Paket Terkonsolidasi'] ? extractPaketTerkonsolidasi(data['Paket Terkonsolidasi']) : 'Bukan Paket Konsolidasi'}</blockquote>\n`
+        + `<b>Jenis Pengadaan:</b> <blockquote expandable>${data['Jenis Pengadaan'] || 'Tidak tersedia'}</blockquote>\n`
+        + `<b>Metode Pemilihan:</b> <blockquote expandable>${data['Metode Pemilihan'] || 'Tidak tersedia'}</blockquote>\n`
+        + `<b>Total Pagu:</b> <blockquote expandable>${data['Total Pagu'] ? formatter.format(parseInt(data['Total Pagu'].replace(/\D/g, ''))) : 'Tidak tersedia'}</blockquote>\n`
+        + `<b>History Paket:</b> <blockquote expandable>${data['History Paket'] || 'Tidak tersedia'}</blockquote>\n`
+    ;
 }
 
 module.exports = { checkKodeRup };

@@ -39,6 +39,9 @@ bot.on('message', (msg) => {
     const chatId = msg.chat.id;
     const text = msg.text.trim();
 
+    // Log the received message for debugging
+    console.log(`Received message from ${chatId}: ${text}`);
+
     // Check if the message is another command (starts with "/")
     if (text.startsWith('/') && awaitingKLPDInput[chatId]) {
         // Cancel the KLPD input process if another command is issued
@@ -49,18 +52,23 @@ bot.on('message', (msg) => {
 
     // Check if the user is awaiting KLPD input
     if (awaitingKLPDInput[chatId]) {
+        // Log the user settings before saving
+        console.log(`Storing KLPD for ${chatId}: ${text}`);
+
         // Store the TARGET_KLPD for this user
         userSettings[chatId] = { TARGET_KLPD: text };
         saveUserSettings();  // Save the settings to the file
 
         // Confirm that the KLPD has been set
-        bot.sendMessage(chatId, `<b>Nama KLPD telah disimpan:</b> <blockquote>${text}</blockquote><br>Nama KLPD ini yang akan dijadikan patokan dalam pencarian Kode RUP selanjutnya.`, { parse_mode: 'HTML' });
+        bot.sendMessage(chatId, `<b>Nama KLPD telah disimpan:</b> <blockquote>${text}</blockquote><br>Nama KLPD ini yang akan dijadikan patokan dalam pencarian Kode RUP selanjutnya.`, { parse_mode: 'HTML' })
+            .then(() => console.log(`Confirmation message sent to ${chatId}`))
+            .catch(err => console.error(`Failed to send confirmation message to ${chatId}: ${err.message}`));
 
-        
         // Reset the awaiting status for this user
         delete awaitingKLPDInput[chatId];
     }
 });
+
 
 // Command to test if the bot is working
 bot.onText(/\/ping/, (msg) => {
