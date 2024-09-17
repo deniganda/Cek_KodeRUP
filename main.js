@@ -60,7 +60,7 @@ bot.on('message', (msg) => {
         saveUserSettings();  // Save the settings to the file
 
         // Confirm that the KLPD has been set
-        bot.sendMessage(chatId, `<b>Nama KLPD telah disimpan:</b> <blockquote>${text}</blockquote><br>Nama KLPD ini yang akan dijadikan patokan dalam pencarian Kode RUP selanjutnya.`, { parse_mode: 'HTML' })
+        bot.sendMessage(chatId, `<b>Nama KLPD telah disimpan:</b> <blockquote>${text}</blockquote>\nNama KLPD ini yang akan dijadikan patokan dalam pencarian Kode RUP selanjutnya.`, { parse_mode: 'HTML' })
             .then(() => console.log(`Confirmation message sent to ${chatId}`))
             .catch(err => console.error(`Failed to send confirmation message to ${chatId}: ${err.message}`));
 
