@@ -2,7 +2,8 @@ const axios = require('axios');
 const cheerio = require('cheerio');
 
 const MAX_RETRIES = 3;
-const MAX_SUMBER_DANA_LENGTH = 500; // Set the limit for Sumber Dana
+const MAX_LENGTH = 2500; // Set the maximum character limit for chat
+
 
 // Function to check Kode RUP in both Penyedia and Swakelola
 async function checkKodeRup(kodeRup, targetKLPD) {
@@ -143,7 +144,6 @@ function formatPaketTerkonsolidasi(text) {
 
 // Function to format Sumber Dana data more neatly with currency formatting for the Pagu value
 function formatSumberDana(text) {
-    const MAX_LENGTH = 2000; // Set the maximum character limit
     const formatter = new Intl.NumberFormat('id-ID', {
         style: 'currency',
         currency: 'IDR',
