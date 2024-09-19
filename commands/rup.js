@@ -2,6 +2,7 @@ const axios = require('axios');
 const cheerio = require('cheerio');
 
 const MAX_RETRIES = 3;
+const MAX_SUMBER_DANA_LENGTH = 500; // Set the limit for Sumber Dana
 
 // Function to check Kode RUP in both Penyedia and Swakelola
 async function checkKodeRup(kodeRup, targetKLPD) {
@@ -170,6 +171,14 @@ function formatSumberDana(text) {
     return formattedText.trim();
 }
 
+// Function to format and limit 'Sumber Dana'
+function formatSumberDana(sumberDana) {
+    if (!sumberDana) return 'Tidak tersedia';
+    // If the length exceeds the limit, truncate and add '...'
+    return sumberDana.length > MAX_SUMBER_DANA_LENGTH
+        ? sumberDana.substring(0, MAX_SUMBER_DANA_LENGTH) + '...'
+        : sumberDana;
+}
 
 // Function to format the response for Penyedia and Swakelola
 function formatResponse(data, type) {
@@ -187,7 +196,7 @@ function formatResponse(data, type) {
             + `<b>Nama Paket:</b> <blockquote expandable>${data['Nama Paket'] || 'Tidak tersedia'}</blockquote>\n`
             + `<b>Tahun Anggaran:</b> <blockquote expandable>${data['Tahun Anggaran'] || 'Tidak tersedia'}</blockquote>\n`
             + `<b>Pra DIPA / DPA:</b> <blockquote expandable>${data['Pra DIPA / DPA'] || 'Tidak tersedia'}</blockquote>\n`
-            + `<b>Paket Terkonsolidasi:</b> <blockquote expandable>${data['Paket Terkonsolidasi'] ? formatPaketTerkonsolidasi(data['Paket Terkonsolidasi']) : 'Bukan Paket Konsolidasi'}</blockquote>\n`            
+            + `<b>Paket Terkonsolidasi:</b> <blockquote expandable>${data['Paket Terkonsolidasi'] ? formatPaketTerkonsolidasi(data['Paket Terkonsolidasi']) : 'Bukan Paket Konsolidasi'}</blockquote>\n`
             + `<b>Jenis Pengadaan:</b> <blockquote expandable>${data['Jenis Pengadaan'] || 'Tidak tersedia'}</blockquote>\n`
             + `<b>Metode Pemilihan:</b> <blockquote expandable>${data['Metode Pemilihan'] || 'Tidak tersedia'}</blockquote>\n`
             + `<b>Total Pagu:</b> <blockquote expandable>${data['Total Pagu'] ? formatter.format(parseInt(data['Total Pagu'].replace(/\D/g, ''))) : 'Tidak tersedia'}</blockquote>\n`
@@ -204,7 +213,7 @@ function formatResponse(data, type) {
             + `<b>Penyelenggara Swakelola:</b> <blockquote expandable>${data['Penyelenggara Swakelola'] || 'Tidak tersedia'}</blockquote>\n`
             + `<b>Lokasi:</b> <blockquote expandable>${data['Lokasi'] || 'Tidak tersedia'}</blockquote>\n`;
     }
-    
+
     return 'Data tidak tersedia.';
 }
 
