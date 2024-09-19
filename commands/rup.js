@@ -143,7 +143,7 @@ function formatPaketTerkonsolidasi(text) {
 
 // Function to format Sumber Dana data more neatly with currency formatting for the Pagu value
 function formatSumberDana(text) {
-    const MAX_LENGTH = 500; // Set the maximum character limit
+    const MAX_LENGTH = 2000; // Set the maximum character limit
     const formatter = new Intl.NumberFormat('id-ID', {
         style: 'currency',
         currency: 'IDR',
