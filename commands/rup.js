@@ -2,7 +2,7 @@ const axios = require('axios');
 const cheerio = require('cheerio');
 
 const MAX_RETRIES = 3;
-const MAX_LENGTH = 2500; // Set the maximum character limit for chat
+const MAX_LENGTH = 2000; // Set the maximum character limit for chat
 
 
 // Function to check Kode RUP in both Penyedia and Swakelola
