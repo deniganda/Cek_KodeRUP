@@ -141,10 +141,9 @@ function formatPaketTerkonsolidasi(text) {
     return formattedText.trim();
 }
 
-
-// Function to format Sumber Dana data more neatly
 // Function to format Sumber Dana data more neatly with currency formatting for the Pagu value
 function formatSumberDana(text) {
+    const MAX_LENGTH = 500; // Set the maximum character limit
     const formatter = new Intl.NumberFormat('id-ID', {
         style: 'currency',
         currency: 'IDR',
@@ -165,20 +164,19 @@ function formatSumberDana(text) {
 
             formattedText += `${currentNumber}. ${sumberDanaLines[i + 1].trim()} (T.A. ${sumberDanaLines[i + 2].trim()}, ${sumberDanaLines[i + 3].trim()}, MAK ${sumberDanaLines[i + 4].trim()}, Pagu: ${formattedPagu})\n`;
             i += 5; // Skip the next lines since they are part of the current item
+
+            // Check if formattedText exceeds the maximum length
+            if (formattedText.length > MAX_LENGTH) {
+                formattedText = formattedText.substring(0, MAX_LENGTH) + '...'; // Truncate and add ellipsis
+                break;
+            }
         }
     }
 
     return formattedText.trim();
 }
 
-// Function to format and limit 'Sumber Dana'
-function formatSumberDana(sumberDana) {
-    if (!sumberDana) return 'Tidak tersedia';
-    // If the length exceeds the limit, truncate and add '...'
-    return sumberDana.length > MAX_SUMBER_DANA_LENGTH
-        ? sumberDana.substring(0, MAX_SUMBER_DANA_LENGTH) + '...'
-        : sumberDana;
-}
+
 
 // Function to format the response for Penyedia and Swakelola
 function formatResponse(data, type) {
@@ -196,7 +194,7 @@ function formatResponse(data, type) {
             + `<b>Nama Paket:</b> <blockquote expandable>${data['Nama Paket'] || 'Tidak tersedia'}</blockquote>\n`
             + `<b>Tahun Anggaran:</b> <blockquote expandable>${data['Tahun Anggaran'] || 'Tidak tersedia'}</blockquote>\n`
             + `<b>Pra DIPA / DPA:</b> <blockquote expandable>${data['Pra DIPA / DPA'] || 'Tidak tersedia'}</blockquote>\n`
-            + `<b>Paket Terkonsolidasi:</b> <blockquote expandable>${data['Paket Terkonsolidasi'] ? formatPaketTerkonsolidasi(data['Paket Terkonsolidasi']) : 'Bukan Paket Konsolidasi'}</blockquote>\n`
+            + `<b>Paket Terkonsolidasi:</b> <blockquote expandable>${data['Paket Terkonsolidasi'] ? formatPaketTerkonsolidasi(data['Paket Terkonsolidasi']) : 'Bukan Paket Konsolidasi'}</blockquote>\n`            
             + `<b>Jenis Pengadaan:</b> <blockquote expandable>${data['Jenis Pengadaan'] || 'Tidak tersedia'}</blockquote>\n`
             + `<b>Metode Pemilihan:</b> <blockquote expandable>${data['Metode Pemilihan'] || 'Tidak tersedia'}</blockquote>\n`
             + `<b>Total Pagu:</b> <blockquote expandable>${data['Total Pagu'] ? formatter.format(parseInt(data['Total Pagu'].replace(/\D/g, ''))) : 'Tidak tersedia'}</blockquote>\n`
@@ -213,7 +211,7 @@ function formatResponse(data, type) {
             + `<b>Penyelenggara Swakelola:</b> <blockquote expandable>${data['Penyelenggara Swakelola'] || 'Tidak tersedia'}</blockquote>\n`
             + `<b>Lokasi:</b> <blockquote expandable>${data['Lokasi'] || 'Tidak tersedia'}</blockquote>\n`;
     }
-
+    
     return 'Data tidak tersedia.';
 }
 
