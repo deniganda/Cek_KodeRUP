@@ -88,7 +88,7 @@ if (msg.reply_to_message && msg.reply_to_message.photo && text === '/rup') {
     // Perform OCR
     Tesseract.recognize(
         filePath,
-        'eng', // Specify the language, you can change this as needed
+        'ind',  // Specify Indonesian language
         {
             logger: info => console.log(info) // Log progress
         }
