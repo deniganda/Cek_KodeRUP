@@ -27,10 +27,20 @@ const awaitingKLPDInput = {};
 bot.onText(/\/set_klpd/, (msg) => {
     const chatId = msg.chat.id;
 
-    // Notify the user and prompt them to input their KLPD
-    bot.sendMessage(chatId, 
-        'Silakan masukkan nama KLPD yang ingin Anda gunakan untuk pencarian Kode RUP, sesuai dengan nama yang tercantum di SiRUP.\n' +
-        '<b>Contoh:</b>\n' + 
+    // Retrieve the currently set KLPD if it exists
+    const currentKLPD = userSettings[chatId]?.TARGET_KLPD;
+
+    // Create the base message
+    let message = '';
+
+    // If the user has already set a KLPD, add it to the message
+    if (currentKLPD) {
+        message += `<b>KLPD yang saat ini tersimpan untuk Pencarian Kode RUP:</b>\n` +
+            `<blockquote>${currentKLPD}</blockquote>\n\n`;
+    }
+
+    message += 'Silakan masukkan nama KLPD yang ingin Anda gunakan untuk pencarian Kode RUP selanjutnya, pastikan nama KLPD yang anda masukan sesuai dengan nama yang tercantum di SiRUP.\n' +
+        '<b>Contoh:</b>\n' +
         '<blockquote>Kab. Lampung Barat</blockquote>\n' +
         '<blockquote>Kab. Aceh Barat</blockquote>\n' +
         '<blockquote>Kab. Belitung Timur</blockquote>\n' +
@@ -38,13 +48,17 @@ bot.onText(/\/set_klpd/, (msg) => {
         '<blockquote>Provinsi Jambi</blockquote>\n' +
         '<blockquote>Provinsi DKI Jakarta</blockquote>\n' +
         '<blockquote>Badan Pusat Statistik</blockquote>\n' +
-        '<blockquote>Arsip Nasional Republik Indonesia</blockquote>', 
-        { parse_mode: 'HTML' }
-    );
-    
+        '<blockquote>Arsip Nasional Republik Indonesia</blockquote>';
+
+    // Send the message to the user
+    bot.sendMessage(chatId, message, { parse_mode: 'HTML' });
+
     // Mark the user as awaiting KLPD input
     awaitingKLPDInput[chatId] = true;
 });
+
+
+
 
 // Listen for messages that may contain the KLPD after prompting
 bot.on('message', (msg) => {
