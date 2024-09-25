@@ -28,7 +28,19 @@ bot.onText(/\/set_klpd/, (msg) => {
     const chatId = msg.chat.id;
 
     // Notify the user and prompt them to input their KLPD
-    bot.sendMessage(chatId, 'Silakan masukkan nama KLPD yang ingin Anda gunakan untuk pencarian Kode RUP, sesuai dengan nama yang tercantum di SiRUP (contoh: Kab. Lampung Barat | Kota Ambon | Provinsi Jambi | Arsip Nasional Republik Indonesia).');
+    bot.sendMessage(chatId, 
+        'Silakan masukkan nama KLPD yang ingin Anda gunakan untuk pencarian Kode RUP, sesuai dengan nama yang tercantum di SiRUP.\n' +
+        '<b>Contoh:</b>\n' + 
+        '<blockquote>Kab. Lampung Barat</blockquote>\n' +
+        '<blockquote>Kab. Aceh Barat</blockquote>\n' +
+        '<blockquote>Kab. Belitung Timur</blockquote>\n' +
+        '<blockquote>Kota Ambon</blockquote>\n' +
+        '<blockquote>Provinsi Jambi</blockquote>\n' +
+        '<blockquote>Provinsi DKI Jakarta</blockquote>\n' +
+        '<blockquote>Badan Pusat Statistik</blockquote>\n' +
+        '<blockquote>Arsip Nasional Republik Indonesia</blockquote>', 
+        { parse_mode: 'HTML' }
+    );
     
     // Mark the user as awaiting KLPD input
     awaitingKLPDInput[chatId] = true;
