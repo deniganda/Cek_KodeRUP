@@ -107,9 +107,16 @@ bot.onText(/\/rup(?:\s+(.+))?/, async (msg, match) => {
     const chatId = msg.chat.id;
     const searchText = match[1] ? match[1].trim() : '';
 
-    // If no input is provided after /rup
+// If no input is provided after /rup
     if (!searchText) {
-        bot.sendMessage(chatId, 'Silakan masukkan kode RUP setelah perintah ini, pastikan setiap kode terdiri dari 8 digit angka dan dipisahkan dengan spasi. Contoh: /rup 12341234 56785678.');
+        bot.sendMessage(chatId, 
+            'Silakan masukkan kode RUP setelah perintah ini, pastikan setiap kode terdiri dari 8 digit angka dan dipisahkan dengan spasi.\n' +
+            '<b>Contoh:</b>\n' + 
+            '<blockquote>/rup 12341234.</blockquote>\n' +
+            '<blockquote>/rup 12341234 56785678.</blockquote>\n' +
+            '<blockquote>/rup 12341234 56785678 11112233.</blockquote>\n', // Close the string here
+            { parse_mode: 'HTML' } // Pass options as a separate argument
+        );
         return;
     }
 
