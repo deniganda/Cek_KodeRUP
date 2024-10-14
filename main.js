@@ -50,6 +50,12 @@ bot.onText(/\/set_klpd/, (msg) => {
     // Send the message to the user
     bot.sendMessage(chatId, message, { parse_mode: 'HTML' });
 
+    // Send the image with a caption using HTML parse mode
+    bot.sendPhoto(chatId, './image/sirup.png', {
+        caption: 'Berikut adalah contoh Nama KLPD yang ada pada <b>SiRUP</b>. Pastikan penulisan Nama KLPD sesuai baik itu dalam penggunaan spasi dan tanda titik. ',
+        parse_mode: 'HTML'
+    });
+
     // Mark the user as awaiting KLPD input
     awaitingKLPDInput[chatId] = true;
 });
