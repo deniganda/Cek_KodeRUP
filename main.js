@@ -124,7 +124,14 @@ bot.onText(/\/rup(?:\s+(.+))?/, async (msg, match) => {
 
     // Check if all codes are valid (8-digit numbers)
     if (!kodeRups.every(code => /^\d{8}$/.test(code))) {
-        bot.sendMessage(chatId, 'Kode RUP harus terdiri dari 8 digit angka dan dipisahkan dengan spasi.');
+        bot.sendMessage(chatId, 
+            'Silakan masukkan kode RUP setelah perintah ini, pastikan setiap kode terdiri dari 8 digit angka dan dipisahkan dengan spasi.\n' +
+            '<b>Contoh:</b>\n' + 
+            '<blockquote>/rup 12341234.</blockquote>\n' +
+            '<blockquote>/rup 12341234 56785678.</blockquote>\n' +
+            '<blockquote>/rup 12341234 56785678 11112233.</blockquote>\n', // Close the string here
+            { parse_mode: 'HTML' } // Pass options as a separate argument
+        );
         return;
     }
 
