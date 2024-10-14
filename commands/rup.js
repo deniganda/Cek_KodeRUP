@@ -18,7 +18,7 @@ async function checkKodeRup(kodeRup, targetKLPD) {
         console.log(`Visiting URL: ${url}`);
 
         result = await fetchData(url, type, kodeRup, targetKLPDLowerCase);
-        console.log(`Result for ${type}:`, result);
+        // console.log(`Result for ${type}:`, result);
 
         if (result && !result.includes('Kode RUP tidak ditemukan')) {
             return result; // Return if a valid result is found
@@ -49,9 +49,9 @@ async function fetchData(url, type, kodeRup, targetKLPDLowerCase, retries = MAX_
             }
         });
 
-        console.log(`Fetched data from URL: ${url}`);
+        // console.log(`Fetched data from URL: ${url}`);
         console.log(`Response Status: ${response.status}`);
-        console.log(`Response Data (snippet): ${response.data.substring(0, 500)}`); // Log a snippet of the response data
+        // console.log(`Response Data (snippet): ${response.data.substring(0, 500)}`); // Log a snippet of the response data
 
         const $ = cheerio.load(response.data);
         const data = {};
@@ -69,7 +69,7 @@ async function fetchData(url, type, kodeRup, targetKLPDLowerCase, retries = MAX_
                 }
             });
 
-            console.log(`Extracted Data (Penyedia):`, data);
+            // console.log(`Extracted Data (Penyedia):`, data);
 
             const scrapedKLPD = data['Nama KLPD'] ? data['Nama KLPD'].toLowerCase() : '';
             console.log(`Scraped Nama KLPD: ${scrapedKLPD}`);
@@ -98,7 +98,7 @@ async function fetchData(url, type, kodeRup, targetKLPDLowerCase, retries = MAX_
                 }
             });
         
-            console.log(`Extracted Data (Swakelola):`, data);
+            // console.log(`Extracted Data (Swakelola):`, data);
         
             const scrapedKLDI = data['KLDI'] ? data['KLDI'].toLowerCase() : '';
             console.log(`Scraped KLDI: ${scrapedKLDI}`);

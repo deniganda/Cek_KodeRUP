@@ -4,7 +4,7 @@
   "description": "My Telegram Bot",
   "main": "main.js",
   "scripts": {
-    "start": "node main.js"  
+    "start": "node main.js"
   },
   "author": "",
   "license": "ISC",
@@ -12,6 +12,7 @@
     "axios": "^1.7.7",
     "cheerio": "^1.0.0",
     "dotenv": "^16.4.5",
-    "node-telegram-bot-api": "^0.66.0"
+    "node-telegram-bot-api": "^0.66.0",
+    "tesseract.js": "^5.1.1"
   }
 }
