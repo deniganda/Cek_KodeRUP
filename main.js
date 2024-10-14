@@ -146,7 +146,7 @@ bot.onText(/\/rup(?:\s+(.+))?/, async (msg, match) => {
     const kodeRups = searchText.split(' ').filter(code => code !== '');
     if (!kodeRups.every(code => /^\d{8}$/.test(code))) {
         bot.sendMessage(chatId, 
-            'Silakan masukkan kode RUP setelah perintah ini, pastikan setiap kode terdiri dari 8 digit angka dan dipisahkan dengan spasi.\n' +
+            'Terdapat satu atau lebih Kode RUP yang tidak terdiri dari 8 digit angka, pastikan setiap kode terdiri dari 8 digit angka dan dipisahkan dengan spasi.\n' +
             '<b>Contoh:</b>\n' + 
             '<blockquote>/rup 12341234.</blockquote>\n' +
             '<blockquote>/rup 12341234 56785678.</blockquote>\n' +
