@@ -224,7 +224,7 @@ function formatResponse(data, type) {
             + `<b>Tipe Swakelola:</b> \n<blockquote expandable>${data['Tipe Swakelola'] || 'Tidak tersedia'}</blockquote>\n`
             + `<b>Penyelenggara Swakelola:</b> \n<blockquote expandable>${data['Penyelenggara Swakelola'] || 'Tidak tersedia'}</blockquote>\n`
             + `<b>Lokasi:</b> \n<blockquote expandable>${data['Lokasi'] || 'Tidak tersedia'}</blockquote>\n`
-            + `<b>Total Dana:</b> \n<blockquote expandable>${data['Total Dana'] ? formatter.format(parseInt(data['Total Dana'].replace(/\D/g, ''))) : 'Tidak tersedia'}</blockquote>\n`;
+            + `<b>Total Pagu:</b> \n<blockquote expandable>${data['Total Dana'] ? formatter.format(parseInt(data['Total Dana'].replace(/\D/g, ''))) : 'Tidak tersedia'}</blockquote>\n`;
     }
     
     return 'Data tidak tersedia.';
