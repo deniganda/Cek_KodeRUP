@@ -206,6 +206,7 @@ function formatResponse(data, type) {
             + `<b>KLDI:</b> \n<blockquote expandable>${data['KLDI'] || 'Tidak tersedia'}</blockquote>\n`
             + `<b>Satuan Kerja:</b> \n<blockquote expandable>${data['Satuan Kerja'] || 'Tidak tersedia'}</blockquote>\n`
             + `<b>Nama Paket:</b> \n<blockquote expandable>${data['Nama Paket'] || 'Tidak tersedia'}</blockquote>\n`
+            + `<b>Sumber Dana:</b> \n<blockquote expandable>${formatSumberDana(data['Sumber Dana'])}</blockquote>\n`
             + `<b>Tahun Anggaran:</b> \n<blockquote expandable>${data['Tahun Anggaran'] || 'Tidak tersedia'}</blockquote>\n`
             + `<b>Tipe Swakelola:</b> \n<blockquote expandable>${data['Tipe Swakelola'] || 'Tidak tersedia'}</blockquote>\n`
             + `<b>Penyelenggara Swakelola:</b> \n<blockquote expandable>${data['Penyelenggara Swakelola'] || 'Tidak tersedia'}</blockquote>\n`
