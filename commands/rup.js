@@ -179,7 +179,7 @@ function formatSumberDana(text) {
 
 
 // Function to format the response for Penyedia and Swakelola
-function formatResponse(data, type) {
+function formatResponse(data, type, $) {
     const formatter = new Intl.NumberFormat('id-ID', {
         style: 'currency',
         currency: 'IDR',
@@ -187,48 +187,42 @@ function formatResponse(data, type) {
 
     // Define formatting based on the type
     if (type === 'Penyedia') {
-        return `<b><u>${type}</u></b>\n\n`
-            + `<b>Kode RUP:</b> \n<blockquote expandable>${data['Kode RUP'] || 'Tidak tersedia'}</blockquote>\n`
-            + `<b>Nama KLPD:</b> \n<blockquote expandable>${data['Nama KLPD'] || 'Tidak tersedia'}</blockquote>\n`
-            + `<b>Satuan Kerja:</b> \n<blockquote expandable>${data['Satuan Kerja'] || 'Tidak tersedia'}</blockquote>\n`
-            + `<b>Nama Paket:</b> \n<blockquote expandable>${data['Nama Paket'] || 'Tidak tersedia'}</blockquote>\n`
-            + `<b>Tahun Anggaran:</b> \n<blockquote expandable>${data['Tahun Anggaran'] || 'Tidak tersedia'}</blockquote>\n`
-            + `<b>Pra DIPA / DPA:</b> \n<blockquote expandable>${data['Pra DIPA / DPA'] || 'Tidak tersedia'}</blockquote>\n`
-            + `<b>Paket Terkonsolidasi:</b> \n<blockquote expandable>${data['Paket Terkonsolidasi'] ? formatPaketTerkonsolidasi(data['Paket Terkonsolidasi']) : 'Bukan Paket Konsolidasi'}</blockquote>\n`            
-            + `<b>Jenis Pengadaan:</b> \n<blockquote expandable>${data['Jenis Pengadaan'] || 'Tidak tersedia'}</blockquote>\n`
-            + `<b>Metode Pemilihan:</b> \n<blockquote expandable>${data['Metode Pemilihan'] || 'Tidak tersedia'}</blockquote>\n`
-            + `<b>Total Pagu:</b> \n<blockquote expandable>${data['Total Pagu'] ? formatter.format(parseInt(data['Total Pagu'].replace(/\D/g, ''))) : 'Tidak tersedia'}</blockquote>\n`
-            + `<b>Sumber Dana:</b> \n<blockquote expandable>${formatSumberDana(data['Sumber Dana'])}</blockquote>\n`
-            + `<b>History Paket:</b> \n<blockquote expandable>${data['History Paket'] || 'Tidak tersedia'}</blockquote>\n`;
+        return `<b><u>${type}</u></b>\n\n
+            + <b>Kode RUP:</b> \n<blockquote expandable>${data['Kode RUP'] || 'Tidak tersedia'}</blockquote>\n
+            + <b>Nama KLPD:</b> \n<blockquote expandable>${data['Nama KLPD'] || 'Tidak tersedia'}</blockquote>\n
+            + <b>Satuan Kerja:</b> \n<blockquote expandable>${data['Satuan Kerja'] || 'Tidak tersedia'}</blockquote>\n
+            + <b>Nama Paket:</b> \n<blockquote expandable>${data['Nama Paket'] || 'Tidak tersedia'}</blockquote>\n
+            + <b>Tahun Anggaran:</b> \n<blockquote expandable>${data['Tahun Anggaran'] || 'Tidak tersedia'}</blockquote>\n
+            + <b>Pra DIPA / DPA:</b> \n<blockquote expandable>${data['Pra DIPA / DPA'] || 'Tidak tersedia'}</blockquote>\n
+            + <b>Paket Terkonsolidasi:</b> \n<blockquote expandable>${data['Paket Terkonsolidasi'] ? formatPaketTerkonsolidasi(data['Paket Terkonsolidasi']) : 'Bukan Paket Konsolidasi'}</blockquote>\n            
+            + <b>Jenis Pengadaan:</b> \n<blockquote expandable>${data['Jenis Pengadaan'] || 'Tidak tersedia'}</blockquote>\n
+            + <b>Metode Pemilihan:</b> \n<blockquote expandable>${data['Metode Pemilihan'] || 'Tidak tersedia'}</blockquote>\n
+            + <b>Total Pagu:</b> \n<blockquote expandable>${data['Total Pagu'] ? formatter.format(parseInt(data['Total Pagu'].replace(/\D/g, ''))) : 'Tidak tersedia'}</blockquote>\n
+            + <b>Sumber Dana:</b> \n<blockquote expandable>${formatSumberDana(data['Sumber Dana'])}</blockquote>\n
+            + <b>History Paket:</b> \n<blockquote expandable>${data['History Paket'] || 'Tidak tersedia'}</blockquote>\n`;
     } else if (type === 'Swakelola') {
-        // Checking if the "Total" exists and grabbing the value next to it for Total Dana
-        let totalDana = 'Tidak tersedia'; // Default value if not found
-        if (data['Sumber Dana']) {
-            const sumberDanaRows = data['Sumber Dana'].split('\n');
-            for (let row of sumberDanaRows) {
-                if (row.includes('Total')) {
-                    const match = row.match(/Total\s+(.*)/); // Match the value to the right of 'Total'
-                    if (match && match[1]) {
-                        totalDana = match[1].trim(); // Grabbing the value next to 'Total'
-                    }
-                    break;
-                }
-            }
-        }
-        return `<b><u>${type}</u></b>\n\n`
-            + `<b>Kode RUP:</b> \n<blockquote expandable>${data['Kode RUP'] || 'Tidak tersedia'}</blockquote>\n`
-            + `<b>KLDI:</b> \n<blockquote expandable>${data['KLDI'] || 'Tidak tersedia'}</blockquote>\n`
-            + `<b>Satuan Kerja:</b> \n<blockquote expandable>${data['Satuan Kerja'] || 'Tidak tersedia'}</blockquote>\n`
-            + `<b>Nama Paket:</b> \n<blockquote expandable>${data['Nama Paket'] || 'Tidak tersedia'}</blockquote>\n`
-            + `<b>Total Dana:</b> \n<blockquote expandable>${totalDana !== 'Tidak tersedia' ? formatter.format(parseInt(totalDana.replace(/\D/g, ''))) : 'Tidak tersedia'}</blockquote>\n`
-            + `<b>Tahun Anggaran:</b> \n<blockquote expandable>${data['Tahun Anggaran'] || 'Tidak tersedia'}</blockquote>\n`
-            + `<b>Tipe Swakelola:</b> \n<blockquote expandable>${data['Tipe Swakelola'] || 'Tidak tersedia'}</blockquote>\n`
-            + `<b>Penyelenggara Swakelola:</b> \n<blockquote expandable>${data['Penyelenggara Swakelola'] || 'Tidak tersedia'}</blockquote>\n`
-            + `<b>Lokasi:</b> \n<blockquote expandable>${data['Lokasi'] || 'Tidak tersedia'}</blockquote>\n`;
+        // Get the "Total Dana" from the page content using the provided logic
+        const totalDanaRow = $('tr').filter(function() {
+            return $(this).text().includes('Total');
+        });
+
+        const totalDana = totalDanaRow.find('span.rupiah').text().trim();
+
+        return `<b><u>${type}</u></b>\n\n
+            + <b>Kode RUP:</b> \n<blockquote expandable>${data['Kode RUP'] || 'Tidak tersedia'}</blockquote>\n
+            + <b>KLDI:</b> \n<blockquote expandable>${data['KLDI'] || 'Tidak tersedia'}</blockquote>\n
+            + <b>Satuan Kerja:</b> \n<blockquote expandable>${data['Satuan Kerja'] || 'Tidak tersedia'}</blockquote>\n
+            + <b>Nama Paket:</b> \n<blockquote expandable>${data['Nama Paket'] || 'Tidak tersedia'}</blockquote>\n
+            + <b>Total Dana:</b> \n<blockquote expandable>${totalDana || 'Tidak tersedia'}</blockquote>\n
+            + <b>Tahun Anggaran:</b> \n<blockquote expandable>${data['Tahun Anggaran'] || 'Tidak tersedia'}</blockquote>\n
+            + <b>Tipe Swakelola:</b> \n<blockquote expandable>${data['Tipe Swakelola'] || 'Tidak tersedia'}</blockquote>\n
+            + <b>Penyelenggara Swakelola:</b> \n<blockquote expandable>${data['Penyelenggara Swakelola'] || 'Tidak tersedia'}</blockquote>\n
+            + <b>Lokasi:</b> \n<blockquote expandable>${data['Lokasi'] || 'Tidak tersedia'}</blockquote>\n`;
     }
     
     return 'Data tidak tersedia.';
 }
+
 
 
 
