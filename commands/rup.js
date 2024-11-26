@@ -56,7 +56,7 @@ async function fetchData(url, type, kodeRup, targetKLPDLowerCase, retries = MAX_
         const $ = cheerio.load(response.data);
         const data = {};
 
-        // Scraping the "Total Dana" value from the table
+        // Scraping the "Total Pagu (Swakelola)" value from the table
         const totalDanaRow = $('tr').filter(function() {
             return $(this).text().includes('Total');
         });
