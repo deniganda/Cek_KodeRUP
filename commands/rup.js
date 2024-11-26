@@ -185,6 +185,19 @@ function formatResponse(data, type) {
         currency: 'IDR',
     });
 
+    // Helper function to extract and format 'Total Dana'
+    function formatTotalDana(text) {
+        const lines = text.split('\n').filter(line => line.trim() !== '');
+        for (let i = 0; i < lines.length; i++) {
+            if (lines[i].toLowerCase().includes('total')) {
+                const totalValue = lines[i + 1]?.trim(); // Assume value is in the next line
+                const numericValue = totalValue ? totalValue.replace(/\D/g, '') : null; // Remove non-numeric characters
+                return numericValue ? formatter.format(parseInt(numericValue, 10)) : 'Tidak tersedia';
+            }
+        }
+        return 'Tidak tersedia'; // Default if 'Total' not found
+    }
+
     // Define formatting based on the type
     if (type === 'Penyedia') {
         return `<b><u>${type}</u></b>\n\n`
@@ -206,7 +219,7 @@ function formatResponse(data, type) {
             + `<b>KLDI:</b> \n<blockquote expandable>${data['KLDI'] || 'Tidak tersedia'}</blockquote>\n`
             + `<b>Satuan Kerja:</b> \n<blockquote expandable>${data['Satuan Kerja'] || 'Tidak tersedia'}</blockquote>\n`
             + `<b>Nama Paket:</b> \n<blockquote expandable>${data['Nama Paket'] || 'Tidak tersedia'}</blockquote>\n`
-            + `<b>Sumber Dana:</b> \n<blockquote expandable>${formatSumberDana(data['Sumber Dana'])}</blockquote>\n`
+            + `<b>Total Dana:</b> \n<blockquote expandable>${data['Total Dana'] ? formatTotalDana(data['Total Dana']) : 'Tidak tersedia'}</blockquote>\n`
             + `<b>Tahun Anggaran:</b> \n<blockquote expandable>${data['Tahun Anggaran'] || 'Tidak tersedia'}</blockquote>\n`
             + `<b>Tipe Swakelola:</b> \n<blockquote expandable>${data['Tipe Swakelola'] || 'Tidak tersedia'}</blockquote>\n`
             + `<b>Penyelenggara Swakelola:</b> \n<blockquote expandable>${data['Penyelenggara Swakelola'] || 'Tidak tersedia'}</blockquote>\n`
