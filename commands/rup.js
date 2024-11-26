@@ -200,13 +200,20 @@ function formatResponse(data, type, $) {
             + <b>Total Pagu:</b> \n<blockquote expandable>${data['Total Pagu'] ? formatter.format(parseInt(data['Total Pagu'].replace(/\D/g, ''))) : 'Tidak tersedia'}</blockquote>\n
             + <b>Sumber Dana:</b> \n<blockquote expandable>${formatSumberDana(data['Sumber Dana'])}</blockquote>\n
             + <b>History Paket:</b> \n<blockquote expandable>${data['History Paket'] || 'Tidak tersedia'}</blockquote>\n`;
-    } else if (type === 'Swakelola') {
-        // Get the "Total Dana" from the page content using the provided logic
+   } else if (type === 'Swakelola') {
+        // Find the row with "Total" and get the amount
         const totalDanaRow = $('tr').filter(function() {
             return $(this).text().includes('Total');
         });
 
         const totalDana = totalDanaRow.find('span.rupiah').text().trim();
+
+        // Debugging console (optional, remove if not needed)
+        if (totalDana) {
+            console.log('Total Dana:', totalDana);
+        } else {
+            console.log('Total Dana: Data not found');
+        }
 
         return `<b><u>${type}</u></b>\n\n
             + <b>Kode RUP:</b> \n<blockquote expandable>${data['Kode RUP'] || 'Tidak tersedia'}</blockquote>\n
