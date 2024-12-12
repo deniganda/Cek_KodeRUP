@@ -136,8 +136,8 @@ if (msg.reply_to_message && msg.reply_to_message.photo && text === '/rup') {
         '<blockquote>/rup 12341234 56785678.</blockquote>\n' +
         '<blockquote>/rup 12341234 56785678 11112233.</blockquote>\n',
         { parse_mode: 'HTML' }
-    );
-}
+      );
+    }
 });
 
 // Command to test if the bot is working
@@ -196,7 +196,6 @@ bot.onText(/\/cekdata/, async (msg) => {
       );
       return;
     }
-  
     try {
       for (const kodeRup of kodeRups) {
         const result = await checkDataRup(kodeRup);
@@ -207,15 +206,14 @@ bot.onText(/\/cekdata/, async (msg) => {
       console.error('Error:', error.message);
       bot.sendMessage(chatId, 'Terjadi kesalahan, silakan coba kembali.', { parse_mode: 'HTML' });
     }
-  
     if (msg.reply_to_message && msg.reply_to_message.photo && msg.text === '/cekdata') {
       const fileId = msg.reply_to_message.photo[msg.reply_to_message.photo.length - 1].file_id;
-  
+
       // Download the image
       const file = await bot.getFile(fileId);
       const filePath = `./${file.file_path.split('/').pop()}`;
-      await bot.downloadFile(fileId, './');
-  
+      await bot.downloadFile(fileId, './'); 
+
       // Perform OCR
       Tesseract.recognize(
         filePath,
@@ -226,15 +224,13 @@ bot.onText(/\/cekdata/, async (msg) => {
       ).then(async ({ data: { text } }) => {
         // Extract 8-digit numbers from the OCR result
         let kodeRups = text.match(/\b\d{8}\b/g);
-  
         if (kodeRups) {
           const extractedLog = `${kodeRups.length} <b>Kode RUP</b> ditemukan\n<blockquote>${kodeRups.join(', ')}</blockquote>`;
-          await bot.sendMessage(chatId, extractedLog, { parse_mode: 'HTML' }); // Send the log to Telegram
-  
+          await bot.sendMessage(chatId, extractedLog, { parse_mode: 'HTML' }); // Send the log to Telegram  
+
           // Process the extracted codes in the same order as found
           for (const kodeRup of kodeRups) {
             console.log(`Processing Kode RUP: ${kodeRup}`);
-  
             const result = await checkDataRup(kodeRup);
             await bot.sendMessage(chatId, result, { parse_mode: 'HTML' });
           }
@@ -248,5 +244,16 @@ bot.onText(/\/cekdata/, async (msg) => {
         console.error('OCR Error:', err.message);
         bot.sendMessage(chatId, 'Terjadi kesalahan saat memproses gambar.', { parse_mode: 'HTML' });
       });
-    }
-  });
+
+    } else if (msg.text === '/cekdata') {
+        // If the message is just '/cekdata' and not a reply to an image, send the instructions
+        bot.sendMessage(chatId, 
+            'Silakan masukkan kode RUP setelah perintah ini, pastikan setiap kode terdiri dari 8 digit angka dan dipisahkan dengan spasi.\n' +
+            '<b>Contoh:</b>\n' + 
+            '<blockquote>/cekdata 12341234.</blockquote>\n' +
+            '<blockquote>/cekdata 12341234 56785678.</blockquote>\n' +
+            '<blockquote>/cekdata 12341234 56785678 111122 33.</blockquote>\n',
+            { parse_mode: 'HTML' }
+          );
+        }
+    });
