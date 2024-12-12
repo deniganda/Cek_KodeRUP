@@ -2,6 +2,7 @@ require('dotenv').config({ path: './config.env' });  // Load environment variabl
 const fs = require('fs');
 const TelegramBot = require('node-telegram-bot-api');
 const { checkKodeRup } = require('./commands/rup');
+const { checkDataRup } = require('./commands/database');
 const Tesseract = require('tesseract.js');
 
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
@@ -82,7 +83,7 @@ bot.on('message', async (msg) => {
         delete awaitingKLPDInput[chatId];
     }
 
-    // Handle image replies with /rup
+// Handle image replies with /rup
 if (msg.reply_to_message && msg.reply_to_message.photo && text === '/rup') {
     const fileId = msg.reply_to_message.photo[msg.reply_to_message.photo.length - 1].file_id;
 
@@ -179,3 +180,73 @@ bot.onText(/\/rup(?:\s+(.+))?/, async (msg, match) => {
         bot.sendMessage(chatId, 'Terjadi kesalahan, silakan coba kembali.');
     }
 });
+
+// Command to check data RUP
+bot.onText(/\/cekdata/, async (msg) => {
+    const chatId = msg.chat.id;
+    const kodeRups = msg.text.split(' ').slice(1);
+    if (!kodeRups.every(code => /^\d{8}$/.test(code))) {
+      bot.sendMessage(chatId, 
+        'Terdapat satu atau lebih Kode RUP yang tidak terdiri dari 8 digit angka, pastikan setiap kode terdiri dari 8 digit angka dan dipisahkan dengan spasi.\n' +
+        '<b>Contoh:</b>\n' + 
+        '<blockquote>/cekdata 12341234.</blockquote>\n' +
+        '<blockquote>/cekdata 12341234 56785678.</blockquote>\n' +
+        '<blockquote>/cekdata 12341234 56785678 11112233.</blockquote>\n',
+        { parse_mode: 'HTML' }
+      );
+      return;
+    }
+  
+    try {
+      for (const kodeRup of kodeRups) {
+        const result = await checkDataRup(kodeRup);
+        await bot.sendMessage(chatId, result, { parse_mode: 'HTML' });
+        await new Promise(resolve => setTimeout(resolve, 100));  // 0.1-second delay between messages
+      }
+    } catch (error) {
+      console.error('Error:', error.message);
+      bot.sendMessage(chatId, 'Terjadi kesalahan, silakan coba kembali.', { parse_mode: 'HTML' });
+    }
+  
+    if (msg.reply_to_message && msg.reply_to_message.photo && msg.text === '/cekdata') {
+      const fileId = msg.reply_to_message.photo[msg.reply_to_message.photo.length - 1].file_id;
+  
+      // Download the image
+      const file = await bot.getFile(fileId);
+      const filePath = `./${file.file_path.split('/').pop()}`;
+      await bot.downloadFile(fileId, './');
+  
+      // Perform OCR
+      Tesseract.recognize(
+        filePath,
+        'ind',  // Specify Indonesian language
+        {
+          logger: info => console.log(info) // Log progress
+        }
+      ).then(async ({ data: { text } }) => {
+        // Extract 8-digit numbers from the OCR result
+        let kodeRups = text.match(/\b\d{8}\b/g);
+  
+        if (kodeRups) {
+          const extractedLog = `${kodeRups.length} <b>Kode RUP</b> ditemukan\n<blockquote>${kodeRups.join(', ')}</blockquote>`;
+          await bot.sendMessage(chatId, extractedLog, { parse_mode: 'HTML' }); // Send the log to Telegram
+  
+          // Process the extracted codes in the same order as found
+          for (const kodeRup of kodeRups) {
+            console.log(`Processing Kode RUP: ${kodeRup}`);
+  
+            const result = await checkDataRup(kodeRup);
+            await bot.sendMessage(chatId, result, { parse_mode: 'HTML' });
+          }
+        } else {
+          bot.sendMessage(chatId, 'Tidak ada kode RUP yang ditemukan dalam gambar.', { parse_mode: 'HTML' });
+        }
+  
+        // Clean up the downloaded image file
+        fs.unlinkSync(filePath);
+      }).catch(err => {
+        console.error('OCR Error:', err.message);
+        bot.sendMessage(chatId, 'Terjadi kesalahan saat memproses gambar.', { parse_mode: 'HTML' });
+      });
+    }
+  });
