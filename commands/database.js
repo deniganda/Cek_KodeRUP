@@ -12,8 +12,8 @@ const sheets = google.sheets({ version: 'v4', auth });
 
 // Set up the spreadsheet ID and sheet names
 const spreadsheetId = '1SeTFM_Hn5HAD7ejmTpWM_Np19zbK0mI2rbUdfwN3Lc4';
-const sheetNames = ['PenyediaLM', 'PenyediaBR', 'AutoPenyedia'];
-const columnLetters = ['H', 'H', 'A'];
+const sheetNames = ['PenyediaLM', 'PenyediaBR'];
+const columnLetters = ['H', 'H'];
 
 // Function to look up a value in the spreadsheet
 async function checkDataRup(kodeRup) {
