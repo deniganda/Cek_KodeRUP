@@ -11,7 +11,7 @@ const auth = new google.auth.GoogleAuth({
 const sheets = google.sheets({ version: 'v4', auth });
 
 // Set up the spreadsheet ID and sheet names
-const spreadsheetId = '1y7yvylJYuqZCLWSX22CGXDDS5YIZyFWKXIBieSDOba0';
+const spreadsheetId = '1SeTFM_Hn5HAD7ejmTpWM_Np19zbK0mI2rbUdfwN3Lc4';
 const sheetNames = ['PenyediaLM', 'PenyediaBR', 'AutoPenyedia'];
 const columnLetters = ['H', 'H', 'A'];
 
