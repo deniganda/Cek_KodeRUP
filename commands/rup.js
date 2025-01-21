@@ -189,7 +189,16 @@ function formatSumberDana(text) {
     return formattedText.trim();
 }
 
+function truncateText(text, maxLength) {
+    if (!text) return 'Tidak tersedia';
+    return text.length > maxLength ? text.substring(0, maxLength) + '...' : text;
+}
 
+return `<b>Paket Terkonsolidasi:</b> \n<blockquote expandable>${
+    data['Paket Terkonsolidasi'] 
+        ? truncateText(formatPaketTerkonsolidasi(data['Paket Terkonsolidasi']), MAX_LENGTH) 
+        : 'Bukan Paket Konsolidasi'
+}</blockquote>\n`;
 
 
 function formatResponse(data, type) {
