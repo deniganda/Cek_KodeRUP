@@ -2,7 +2,7 @@ const axios = require('axios');
 const cheerio = require('cheerio');
 
 const MAX_RETRIES = 3;
-const MAX_LENGTH = 2000; // Set the maximum character limit for chat
+const MAX_LENGTH = 1000; // Set the maximum character limit for chat
 
 
 // Function to check Kode RUP in both Penyedia and Swakelola
@@ -135,23 +135,32 @@ async function fetchData(url, type, kodeRup, targetKLPDLowerCase, retries = MAX_
     }
 }
 
-// Function to format Paket Terkonsolidasi with proper numbering and neat output
+// Function to format Paket Terkonsolidasi with proper numbering and max length handling
 function formatPaketTerkonsolidasi(text) {
+    if (!text) return 'Bukan Paket Konsolidasi';
+
     const paketLines = text.split('\n').filter(line => line.trim() !== '');
     let formattedText = '';
     let currentNumber = 0;
 
     for (let i = 0; i < paketLines.length; i++) {
         const line = paketLines[i].trim();
-        if (/^\d+\./.test(line)) { // Match lines that start with a number followed by a period (e.g., "1.")
+        if (/^\d+\./.test(line)) { // Match numbered lines
             currentNumber++;
-            // Combine the next two lines into a single line with the correct format
-            const code = paketLines[i + 1].trim().replace(': ', '');  // Clean up the unwanted ": "
-            const description = paketLines[i + 2].trim().replace(': ', ''); // Clean up the unwanted ": "
-            formattedText += `${currentNumber}. ${code} ${description}\n`;
-            i += 2; // Skip the next two lines since they are part of the current item
+            const code = paketLines[i + 1]?.trim().replace(': ', '') || '';  
+            const description = paketLines[i + 2]?.trim().replace(': ', '') || '';  
+            const entry = `${currentNumber}. ${code} ${description}\n`;
+            
+            if ((formattedText.length + entry.length) > MAX_LENGTH) {
+                formattedText += '...'; // Add ellipsis when truncated
+                break;
+            }
+
+            formattedText += entry;
+            i += 2; // Skip processed lines
         }
     }
+
     return formattedText.trim();
 }
 
