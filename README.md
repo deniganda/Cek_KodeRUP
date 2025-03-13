@@ -1,3 +1,8 @@
+
+![Cek_KodeRUP](https://github.com/deniganda/Cek_KodeRUP/blob/main/image/logo.png)
+
+### Demo Telegram BOT: ![Disini](t.me/KodeRUP_bot)
+
 # Telegram Bot
 
 Bot Telegram ini dirancang untuk memeriksa Kode RUP (Rencana Umum Pengadaan) dari SiRUP dan memungkinkan pengguna untuk mengatur TARGET_KLPD.
