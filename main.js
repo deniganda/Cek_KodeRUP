@@ -3,6 +3,7 @@ const fs = require('fs');
 const TelegramBot = require('node-telegram-bot-api');
 const { checkKodeRup } = require('./commands/rup');
 const { checkDataRup } = require('./commands/database');
+const { processImage } = require('./commands/spt');
 const Tesseract = require('tesseract.js');
 
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
@@ -139,6 +140,58 @@ if (msg.reply_to_message && msg.reply_to_message.photo && text === '/rup') {
       );
     }
 });
+
+const userState = {}; // Track users' responses
+
+bot.on('message', async (msg) => {
+    const chatId = msg.chat.id;
+    const text = msg.text?.trim();
+
+    if (text === '/spt' && msg.reply_to_message && msg.reply_to_message.photo) {
+        const fileId = msg.reply_to_message.photo[msg.reply_to_message.photo.length - 1].file_id;
+        const file = await bot.getFile(fileId);
+        const filePath = `./${file.file_path.split('/').pop()}`;
+        await bot.downloadFile(fileId, './');
+
+        // Store user state
+        userState[chatId] = { filePath, step: 1 };
+        bot.sendMessage(chatId, "📅 Masukkan tanggal surat \n(format: YYYY-MM-DD): \n\nContoh: \n<blockquote>2025-07-02</blockquote> ", { parse_mode: "HTML"});
+    } else if (userState[chatId]) {
+        handleUserResponse(chatId, text);
+    }
+});
+
+async function handleUserResponse(chatId, text) {
+    const user = userState[chatId];
+
+    switch (user.step) {
+        case 1:
+            user.tanggalSurat = text;
+            user.step++;
+            bot.sendMessage(chatId, "📧 Masukkan email penerima: \n\nContoh: \n<blockquote>deniganda@yahoo.com</blockquote> ", { parse_mode: "HTML"});
+            break;
+        case 2:
+            user.emailPenerima = text;
+            user.step++;
+            bot.sendMessage(chatId, "👤 Masukkan nama pejabat pengadaan:\n\nContoh: \n<blockquote>Deni</blockquote> ", { parse_mode: "HTML"});
+            break;
+        case 3:
+            user.pejabatPengadaan = text;
+            user.step++;
+
+            // Process Image
+            bot.sendMessage(chatId, "🔄 Memproses gambar, harap tunggu... ", { parse_mode: "HTML"});
+            const result = await processImage(user.filePath, user.tanggalSurat, user.emailPenerima, user.pejabatPengadaan);
+
+            // Send result
+            bot.sendMessage(chatId, `${result}\n\nCek kembali data2 pada link <b>Google Form</b> di atas.`, { parse_mode: 'HTML' });
+
+            // Cleanup
+            if (fs.existsSync(user.filePath)) fs.unlinkSync(user.filePath);
+            delete userState[chatId];
+            break;
+    }
+}
 
 // Command to test if the bot is working
 bot.onText(/\/ping/, (msg) => {
