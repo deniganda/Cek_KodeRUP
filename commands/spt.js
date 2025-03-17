@@ -94,7 +94,7 @@ async function processImage(imagePath, tanggalSurat, emailPenerima, pejabatPenga
             }
         });
 
-        return `🔗 Tautan Google Form:\n${googleFormURL}`;
+        return `🔗 Tautan Google Form:\n<blockquote expandable>${googleFormURL}</blockquote>`;
     } catch (error) {
         console.error("❌ Error:", error.message);
         return "❌ Terjadi kesalahan saat memproses gambar.";
