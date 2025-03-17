@@ -72,7 +72,7 @@ async function processImage(imagePath, tanggalSurat, emailPenerima, pejabatPenga
         let googleFormURL = `https://docs.google.com/forms/d/e/1FAIpQLSdivk8RS_OSl1hX93beSaW19oYZKmxG9TiGD6-4o0cGGPdH3Q/viewform?usp=pp_url`
             + `&entry.1129931024=${encodeURIComponent(kodeRupArray.length)}` 
             + `&entry.51947438=${encodeURIComponent(answers.instansi).replace(/%20/g, "+")}` 
-            + `&entry.1344618841=${encodeURIComponent(answers.nomorSurat.replace(/\s+|\.+/g, ""))}`
+            + `&entry.1344618841=${encodeURIComponent(answers.nomorSurat.replace(/\s+|\.{2,}/g, ""))}`
             + `&entry.1992581915=${encodeURIComponent(answers.perihal.replace(/\.+/g, ""))}`
             + `&entry.1712954723=${encodeURIComponent(answers.tanggalsurat)}`
             + `&entry.1732353446=${encodeURIComponent(answers.emailpenerima)}`
