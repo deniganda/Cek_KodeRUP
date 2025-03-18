@@ -3,7 +3,8 @@ const fs = require('fs');
 const TelegramBot = require('node-telegram-bot-api');
 const { checkKodeRup } = require('./commands/rup');
 const { checkDataRup } = require('./commands/database');
-const { processImage } = require('./commands/spt');
+const { processImage } = require('./commands/sptpp');
+const { processPokja } = require('./commands/sptpokja');
 const Tesseract = require('tesseract.js');
 
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
@@ -147,51 +148,118 @@ bot.on('message', async (msg) => {
     const chatId = msg.chat.id;
     const text = msg.text?.trim();
 
-    if (text === '/spt' && msg.reply_to_message && msg.reply_to_message.photo) {
-        const fileId = msg.reply_to_message.photo[msg.reply_to_message.photo.length - 1].file_id;
+    if (text === '/sptpp' && msg.reply_to_message?.photo) {
+        const fileId = msg.reply_to_message.photo.pop().file_id;
         const file = await bot.getFile(fileId);
         const filePath = `./${file.file_path.split('/').pop()}`;
         await bot.downloadFile(fileId, './');
+        userState[chatId] = { filePath, step: 1, type: 'sptpp' };
 
-        // Store user state
-        userState[chatId] = { filePath, step: 1 };
         bot.sendMessage(chatId, "📅 Masukkan tanggal surat \n(format: YYYY-MM-DD): \n\nContoh: \n<blockquote>2025-07-02</blockquote> ", { parse_mode: "HTML"});
+    } else if (text === '/sptpokja' && msg.reply_to_message?.photo) {
+        const fileId = msg.reply_to_message.photo.pop().file_id;
+        const file = await bot.getFile(fileId);
+        const filePath = `./${file.file_path.split('/').pop()}`;
+        await bot.downloadFile(fileId, './');
+        userState[chatId] = { filePath, step: 1, type: 'sptpokja' };
+
+        bot.sendMessage(chatId, "🛠 Jumlah Pokja:", {
+            reply_markup: {
+                inline_keyboard: [
+                    [{ text: "3", callback_data: "pokja_3" }],
+                    [{ text: "5", callback_data: "pokja_5" }],
+                    [{ text: "7", callback_data: "pokja_7" }]
+                ]
+            }
+        });
     } else if (userState[chatId]) {
         handleUserResponse(chatId, text);
+    }
+});
+
+bot.on('callback_query', async (callbackQuery) => {
+    const chatId = callbackQuery.message.chat.id;
+    const data = callbackQuery.data;
+
+    if (data.startsWith('pokja_')) {
+        const jumlahPokja = parseInt(data.split('_')[1]);
+
+        if (!userState[chatId]) return; // 🔥 Ensure state exists
+
+        // ✅ Preserve filePath
+        userState[chatId].step = 2;
+        userState[chatId].jumlahPokja = jumlahPokja;
+        userState[chatId].pokjaNames = [];
+        userState[chatId].type = 'sptpokja';
+
+        bot.sendMessage(chatId, `📝 Masukkan nama Pokja 1:`);
     }
 });
 
 async function handleUserResponse(chatId, text) {
     const user = userState[chatId];
 
-    switch (user.step) {
-        case 1:
-            user.tanggalSurat = text;
-            user.step++;
-            bot.sendMessage(chatId, "📧 Masukkan email penerima: \n\nContoh: \n<blockquote>deniganda@yahoo.com</blockquote> ", { parse_mode: "HTML"});
-            break;
-        case 2:
+    if (user.type === 'sptpokja') {
+        if (user.step === 2) {
+            user.pokjaNames.push(text);
+            if (user.pokjaNames.length < user.jumlahPokja) {
+                bot.sendMessage(chatId, `📝 Masukkan nama Pokja ${user.pokjaNames.length + 1}:`);
+            } else {
+                user.step++;
+                bot.sendMessage(chatId, "📧 Masukkan email penerima:\n\nContoh: \n<blockquote>deniganda@yahoo.com</blockquote> ", { parse_mode: "HTML"});
+            }
+        } else if (user.step === 3) {
             user.emailPenerima = text;
             user.step++;
-            bot.sendMessage(chatId, "👤 Masukkan nama pejabat pengadaan:\n\nContoh: \n<blockquote>Deni</blockquote> ", { parse_mode: "HTML"});
-            break;
-        case 3:
-            user.pejabatPengadaan = text;
-            user.step++;
+            bot.sendMessage(chatId, "📅 Masukkan tanggal surat \n(format: YYYY-MM-DD): \n\nContoh: \n<blockquote>2025-07-02</blockquote> ", { parse_mode: "HTML"});
+        } else if (user.step === 4) {
+            user.tanggalSurat = text;
+            bot.sendMessage(chatId, "🔄 Memproses data, harap tunggu...", { parse_mode: "HTML" });
 
-            // Process Image
-            bot.sendMessage(chatId, "🔄 Memproses gambar, harap tunggu... ", { parse_mode: "HTML"});
-            const result = await processImage(user.filePath, user.tanggalSurat, user.emailPenerima, user.pejabatPengadaan);
+            if (!user.filePath) {
+                bot.sendMessage(chatId, "⚠️ Terjadi kesalahan: file gambar tidak ditemukan.");
+                return;
+            }
 
-            // Send result
-            bot.sendMessage(chatId, `${result}\n\nCek kembali data2 pada link <b>Google Form</b> di atas.`, { parse_mode: 'HTML' });
+            const result = await processPokja(user.filePath, user.tanggalSurat, user.emailPenerima, user.pokjaNames);
+            bot.sendMessage(chatId, `${result}\n\nCek kembali data-data pada link <b>Google Form</b> di atas.`, { parse_mode: "HTML" });
 
-            // Cleanup
             if (fs.existsSync(user.filePath)) fs.unlinkSync(user.filePath);
             delete userState[chatId];
-            break;
+        }
+    } else if (user.type === 'sptpp') {
+        switch (user.step) {
+            case 1:
+                user.tanggalSurat = text;
+                user.step++;
+                bot.sendMessage(chatId, "📧 Masukkan email penerima:\n\nContoh: \n<blockquote>deniganda@yahoo.com</blockquote> ", { parse_mode: "HTML"});
+                break;
+            case 2:
+                user.emailPenerima = text;
+                user.step++;
+                bot.sendMessage(chatId, "👤 Masukkan nama pejabat pengadaan:\n\nContoh: \n<blockquote>Deni</blockquote> ", { parse_mode: "HTML"});
+                break;
+            case 3:
+                user.pejabatPengadaan = text;
+                user.step++;
+
+                bot.sendMessage(chatId, "🔄 Memproses gambar, harap tunggu... ", { parse_mode: "HTML"});
+                if (!user.filePath) {
+                    bot.sendMessage(chatId, "⚠️ Terjadi kesalahan: file gambar tidak ditemukan.");
+                    return;
+                }
+
+                const result = await processImage(user.filePath, user.tanggalSurat, user.emailPenerima, user.pejabatPengadaan);
+                bot.sendMessage(chatId, `${result}\n\nCek kembali data2 pada link <b>Google Form</b> di atas.`, { parse_mode: 'HTML' });
+
+                if (fs.existsSync(user.filePath)) fs.unlinkSync(user.filePath);
+                delete userState[chatId];
+                break;
+        }
     }
 }
+
+
 
 // Command to test if the bot is working
 bot.onText(/\/ping/, (msg) => {

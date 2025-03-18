@@ -9,15 +9,13 @@ const predefinedInstansi = process.env.PREDEFINED_INSTANSI.split(";");
 const pejabatList = process.env.PEJABAT_LIST.split(";");
 
 async function processImage(imagePath, tanggalSurat, emailPenerima, pejabatPengadaan) {
-        try {
+    try {
         const genAI = new GoogleGenerativeAI(API_KEY);
         const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
 
-        // console.log("📷 Membaca gambar...");
         const imageBuffer = fs.readFileSync(imagePath);
         const imageBase64 = imageBuffer.toString("base64");
 
-        // console.log("🚀 Mengirim permintaan ke Gemini...");
         const result = await model.generateContent([
             { inlineData: { mimeType: "image/jpeg", data: imageBase64 } },
             { text: "Ekstrak teks dari gambar ini dalam Bahasa Indonesia. Jangan beri tambahan teks lain, hanya ekstrak teksnya saja." }
@@ -25,6 +23,8 @@ async function processImage(imagePath, tanggalSurat, emailPenerima, pejabatPenga
 
         const response = await result.response;
         const extractedText = response.text().trim();
+
+        // console.log("📄 Teks yang Diekstrak:\n", extractedText);
 
         if (!extractedText) {
             return "⚠️ Tidak ada teks yang ditemukan dalam gambar.";
@@ -48,18 +48,28 @@ async function processImage(imagePath, tanggalSurat, emailPenerima, pejabatPenga
             answers[key] = questionResponse.text().trim();
         }
 
-        // Match instansi
-        let bestInstansiMatch = fuzz.extract(answers.instansi, predefinedInstansi, { scorer: fuzz.ratio, limit: 1 });
-        if (bestInstansiMatch.length > 0 && bestInstansiMatch[0][1] >= 50) {
-            answers.instansi = bestInstansiMatch[0][0];
+        let bestInstansiMatch = fuzz.extract(
+            answers.instansi.toLowerCase(),
+            predefinedInstansi.map(i => i.toLowerCase()),
+            { scorer: fuzz.partial_ratio, limit: 1 }
+        );
+        
+        if (bestInstansiMatch.length > 0 && bestInstansiMatch[0][1] >= 70) {  // Increase threshold
+            let originalMatch = predefinedInstansi.find(i => i.toLowerCase() === bestInstansiMatch[0][0]);
+            answers.instansi = originalMatch || bestInstansiMatch[0][0];
         } else {
             return "⚠️ Instansi tidak ditemukan dalam daftar.";
         }
+        
+        let bestPejabatMatch = fuzz.extract(
+            answers.instansi.toLowerCase(),
+            predefinedInstansi.map(i => i.toLowerCase()),
+            { scorer: fuzz.partial_ratio, limit: 1 }
+        );
 
-        // Match pejabatPengadaan
-        let bestPejabatMatch = fuzz.extract(pejabatPengadaan, pejabatList, { scorer: fuzz.ratio, limit: 1 });
         if (bestPejabatMatch.length > 0 && bestPejabatMatch[0][1] >= 30) {
-            answers.pejabatpengadaan = bestPejabatMatch[0][0];
+            let originalMatch = pejabatList.find(p => p.toLowerCase() === bestPejabatMatch[0][0]);
+            answers.pejabatpengadaan = originalMatch || bestPejabatMatch[0][0];
         } else {
             return "⚠️ Pejabat pengadaan tidak ditemukan dalam daftar.";
         }
@@ -69,6 +79,16 @@ async function processImage(imagePath, tanggalSurat, emailPenerima, pejabatPenga
 
         let kodeRupArray = answers.kodeRup ? answers.kodeRup.split(",").map(r => r.trim()) : [];
 
+        // console.log("\n📜 Extracted Data:");
+        // console.log(`📌 Instansi: ${answers.instansi}`);
+        // console.log(`📌 Nomor Surat: ${answers.nomorSurat}`);
+        // console.log(`📌 Perihal: ${answers.perihal}`);
+        // console.log(`📌 Tanggal Surat: ${answers.tanggalsurat}`);
+        // console.log(`📌 Email Penerima: ${answers.emailpenerima}`);
+        // console.log(`📌 Pejabat Pengadaan: ${answers.pejabatpengadaan}`);
+        // console.log(`📌 Kode RUP: ${kodeRupArray.join(", ") || "Tidak ada"}`);
+
+
         let googleFormURL = `https://docs.google.com/forms/d/e/1FAIpQLSdivk8RS_OSl1hX93beSaW19oYZKmxG9TiGD6-4o0cGGPdH3Q/viewform?usp=pp_url`
             + `&entry.1129931024=${encodeURIComponent(kodeRupArray.length)}` 
             + `&entry.51947438=${encodeURIComponent(answers.instansi).replace(/%20/g, "+")}` 
@@ -77,7 +97,6 @@ async function processImage(imagePath, tanggalSurat, emailPenerima, pejabatPenga
             + `&entry.1712954723=${encodeURIComponent(answers.tanggalsurat)}`
             + `&entry.1732353446=${encodeURIComponent(answers.emailpenerima)}`
             + `&entry.1189723868=${encodeURIComponent(answers.pejabatpengadaan)}`;
-
 
         const entryRupFields = [
             "1758763754", "1665074227", "1214865365", "1172219468", "480767324",
@@ -94,7 +113,18 @@ async function processImage(imagePath, tanggalSurat, emailPenerima, pejabatPenga
             }
         });
 
-        return `🔗 Tautan Google Form:\n<blockquote expandable>${googleFormURL}</blockquote>`;
+        console.log(`\n🔗 Google Form URL:\n${googleFormURL}`);
+
+        return `📜 <b>Data yang Diekstrak:</b>\n`
+        + `<blockquote>📌 Instansi: ${answers.instansi}\n`
+        + `📌 Nomor Surat: ${answers.nomorSurat}\n`
+        + `📌 Perihal: ${answers.perihal}\n`
+        + `📌 Tanggal Surat: ${answers.tanggalsurat}\n`
+        + `📌 Email Penerima: ${answers.emailpenerima}\n`
+        + `📌 Pejabat Pengadaan: ${answers.pejabatpengadaan}\n`
+        + `📌 Kode RUP: ${kodeRupArray.join(", ") || "Tidak ada"}</blockquote>\n\n`
+        + `🔗 <b>Tautan Google Form:</b>\n<blockquote expandable>${googleFormURL}</blockquote>`;
+    
     } catch (error) {
         console.error("❌ Error:", error.message);
         return "❌ Terjadi kesalahan saat memproses gambar.";
