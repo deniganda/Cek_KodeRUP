@@ -48,6 +48,7 @@ async function processImage(imagePath, tanggalSurat, emailPenerima, pejabatPenga
             answers[key] = questionResponse.text().trim();
         }
 
+        // Match instansi
         let bestInstansiMatch = fuzz.extract(
             answers.instansi.toLowerCase(),
             predefinedInstansi.map(i => i.toLowerCase()),
@@ -60,10 +61,11 @@ async function processImage(imagePath, tanggalSurat, emailPenerima, pejabatPenga
         } else {
             return "⚠️ Instansi tidak ditemukan dalam daftar.";
         }
+
         
         let bestPejabatMatch = fuzz.extract(
-            answers.instansi.toLowerCase(),
-            predefinedInstansi.map(i => i.toLowerCase()),
+            answers.pejabatPengadaan.toLowerCase(),
+            pejabatList.map(i => i.toLowerCase()),
             { scorer: fuzz.partial_ratio, limit: 1 }
         );
 
