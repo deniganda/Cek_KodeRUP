@@ -62,12 +62,19 @@ async function processImage(imagePath, tanggalSurat, emailPenerima, pejabatPenga
         }
         
         // Match pejabatPengadaan
-        let bestPejabatMatch = fuzz.extract(pejabatPengadaan, pejabatList, { scorer: fuzz.ratio, limit: 1 });
-            if (bestPejabatMatch.length > 0 && bestPejabatMatch[0][1] >= 30) {
-                answers.pejabatpengadaan = bestPejabatMatch[0][0];
-            } else {
-                return "⚠️ Pejabat pengadaan tidak ditemukan dalam daftar.";
-                   }
+        let bestPejabatMatch = fuzz.extract(
+            pejabatPengadaan.toLowerCase(),
+            pejabatList.map(p => p.toLowerCase()),
+            { scorer: fuzz.partial_ratio, limit: 1 }
+        );
+        
+        if (bestPejabatMatch.length > 0 && bestPejabatMatch[0][1] >= 60) {  // Increased threshold to match instansi
+            let originalMatch = pejabatList.find(p => p.toLowerCase() === bestPejabatMatch[0][0]);
+            pejabatPengadaan = originalMatch || bestPejabatMatch[0][0];
+        } else {
+            return "⚠️ Pejabat pengadaan tidak ditemukan dalam daftar.";
+        }
+        
 
         answers.tanggalsurat = tanggalSurat;
         answers.emailpenerima = emailPenerima;
@@ -80,7 +87,7 @@ async function processImage(imagePath, tanggalSurat, emailPenerima, pejabatPenga
         // console.log(`📌 Perihal: ${answers.perihal}`);
         // console.log(`📌 Tanggal Surat: ${answers.tanggalsurat}`);
         // console.log(`📌 Email Penerima: ${answers.emailpenerima}`);
-        // console.log(`📌 Pejabat Pengadaan: ${answers.pejabatpengadaan}`);
+        // console.log(`📌 Pejabat Pengadaan: ${pejabatPengadaan}`);
         // console.log(`📌 Kode RUP: ${kodeRupArray.join(", ") || "Tidak ada"}`);
 
 
@@ -91,7 +98,7 @@ async function processImage(imagePath, tanggalSurat, emailPenerima, pejabatPenga
             + `&entry.1992581915=${encodeURIComponent(answers.perihal.replace(/\.+/g, ""))}`
             + `&entry.1712954723=${encodeURIComponent(answers.tanggalsurat)}`
             + `&entry.1732353446=${encodeURIComponent(answers.emailpenerima)}`
-            + `&entry.1189723868=${encodeURIComponent(answers.pejabatpengadaan)}`;
+            + `&entry.1189723868=${encodeURIComponent(pejabatPengadaan)}`;
 
         const entryRupFields = [
             "1758763754", "1665074227", "1214865365", "1172219468", "480767324",
@@ -116,7 +123,7 @@ async function processImage(imagePath, tanggalSurat, emailPenerima, pejabatPenga
         + `📌 Perihal: ${answers.perihal}\n`
         + `📌 Tanggal Surat: ${answers.tanggalsurat}\n`
         + `📌 Email Penerima: ${answers.emailpenerima}\n`
-        + `📌 Pejabat Pengadaan: ${answers.pejabatpengadaan}\n`
+        + `📌 Pejabat Pengadaan: ${pejabatPengadaan}\n`
         + `📌 Kode RUP: ${kodeRupArray.join(", ") || "Tidak ada"}</blockquote>\n\n`
         + `🔗 <b>Tautan Google Form:</b>\n<blockquote expandable>${googleFormURL}</blockquote>`;
     
