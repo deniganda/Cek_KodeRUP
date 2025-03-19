@@ -48,7 +48,6 @@ async function processImage(imagePath, tanggalSurat, emailPenerima, pejabatPenga
             answers[key] = questionResponse.text().trim();
         }
 
-        // Match instansi
         let bestInstansiMatch = fuzz.extract(
             answers.instansi.toLowerCase(),
             predefinedInstansi.map(i => i.toLowerCase()),
@@ -61,20 +60,14 @@ async function processImage(imagePath, tanggalSurat, emailPenerima, pejabatPenga
         } else {
             return "⚠️ Instansi tidak ditemukan dalam daftar.";
         }
-
         
-        let bestPejabatMatch = fuzz.extract(
-            answers.pejabatPengadaan.toLowerCase(),
-            pejabatList.map(i => i.toLowerCase()),
-            { scorer: fuzz.partial_ratio, limit: 1 }
-        );
-
-        if (bestPejabatMatch.length > 0 && bestPejabatMatch[0][1] >= 30) {
-            let originalMatch = pejabatList.find(p => p.toLowerCase() === bestPejabatMatch[0][0]);
-            answers.pejabatpengadaan = originalMatch || bestPejabatMatch[0][0];
-        } else {
-            return "⚠️ Pejabat pengadaan tidak ditemukan dalam daftar.";
-        }
+        // Match pejabatPengadaan
+        let bestPejabatMatch = fuzz.extract(pejabatPengadaan, pejabatList, { scorer: fuzz.ratio, limit: 1 });
+            if (bestPejabatMatch.length > 0 && bestPejabatMatch[0][1] >= 30) {
+                answers.pejabatpengadaan = bestPejabatMatch[0][0];
+            } else {
+                return "⚠️ Pejabat pengadaan tidak ditemukan dalam daftar.";
+                   }
 
         answers.tanggalsurat = tanggalSurat;
         answers.emailpenerima = emailPenerima;
