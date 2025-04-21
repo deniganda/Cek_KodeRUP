@@ -241,7 +241,7 @@ async function handleUserResponse(chatId, text) {
                     return;
                 }
 
-                const result = await processImage(user.filePath, user.tanggalSurat, user.emailPenerima, user.pejabatPengadaan);
+                const result = await processImage(user.filePath, user.emailPenerima, user.pejabatPengadaan);
                 bot.sendMessage(chatId, `${result}\n\nCek kembali data2 pada link <b>Google Form</b> di atas.`, { parse_mode: 'HTML' });
 
                 if (fs.existsSync(user.filePath)) fs.unlinkSync(user.filePath);
