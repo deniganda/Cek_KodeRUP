@@ -155,7 +155,8 @@ bot.on('message', async (msg) => {
         await bot.downloadFile(fileId, './');
         userState[chatId] = { filePath, step: 1, type: 'sptpp' };
 
-        bot.sendMessage(chatId, "📅 Masukkan tanggal surat \n(format: YYYY-MM-DD): \n\nContoh: \n<blockquote>2025-07-02</blockquote> ", { parse_mode: "HTML"});
+
+        bot.sendMessage(chatId, "📧 Masukkan email penerima:\n\nContoh: \n<blockquote>deniganda@yahoo.com</blockquote> ", { parse_mode: "HTML"});
     } else if (text === '/sptpokja' && msg.reply_to_message?.photo) {
         const fileId = msg.reply_to_message.photo.pop().file_id;
         const file = await bot.getFile(fileId);
@@ -210,10 +211,6 @@ async function handleUserResponse(chatId, text) {
             }
         } else if (user.step === 3) {
             user.emailPenerima = text;
-            user.step++;
-            bot.sendMessage(chatId, "📅 Masukkan tanggal surat \n(format: YYYY-MM-DD): \n\nContoh: \n<blockquote>2025-07-02</blockquote> ", { parse_mode: "HTML"});
-        } else if (user.step === 4) {
-            user.tanggalSurat = text;
             bot.sendMessage(chatId, "🔄 Memproses data, harap tunggu...", { parse_mode: "HTML" });
 
             if (!user.filePath) {
@@ -221,8 +218,8 @@ async function handleUserResponse(chatId, text) {
                 return;
             }
 
-            const result = await processPokja(user.filePath, user.tanggalSurat, user.emailPenerima, user.pokjaNames);
-            bot.sendMessage(chatId, `${result}\n\nCek kembali data-data pada link <b>Google Form</b> di atas.`, { parse_mode: "HTML" });
+            const result = await processPokja(user.filePath, user.emailPenerima, user.pokjaNames);
+            bot.sendMessage(chatId, `${result}`, { parse_mode: "HTML" });
 
             if (fs.existsSync(user.filePath)) fs.unlinkSync(user.filePath);
             delete userState[chatId];
@@ -230,16 +227,11 @@ async function handleUserResponse(chatId, text) {
     } else if (user.type === 'sptpp') {
         switch (user.step) {
             case 1:
-                user.tanggalSurat = text;
-                user.step++;
-                bot.sendMessage(chatId, "📧 Masukkan email penerima:\n\nContoh: \n<blockquote>deniganda@yahoo.com</blockquote> ", { parse_mode: "HTML"});
-                break;
-            case 2:
                 user.emailPenerima = text;
                 user.step++;
                 bot.sendMessage(chatId, "👤 Masukkan nama pejabat pengadaan:\n\nContoh: \n<blockquote>Deni</blockquote> ", { parse_mode: "HTML"});
                 break;
-            case 3:
+            case 2:
                 user.pejabatPengadaan = text;
                 user.step++;
 

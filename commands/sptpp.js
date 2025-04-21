@@ -8,7 +8,7 @@ const API_KEY = process.env.API_KEY; // Replace with your actual API key
 const predefinedInstansi = process.env.PREDEFINED_INSTANSI.split(";");
 const pejabatList = process.env.PEJABAT_LIST.split(";");
 
-async function processImage(imagePath, tanggalSurat, emailPenerima, pejabatPengadaan) {
+async function processImage(imagePath, emailPenerima, pejabatPengadaan) {
     try {
         const genAI = new GoogleGenerativeAI(API_KEY);
         const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
@@ -24,8 +24,6 @@ async function processImage(imagePath, tanggalSurat, emailPenerima, pejabatPenga
         const response = await result.response;
         const extractedText = response.text().trim();
 
-        // console.log("📄 Teks yang Diekstrak:\n", extractedText);
-
         if (!extractedText) {
             return "⚠️ Tidak ada teks yang ditemukan dalam gambar.";
         }
@@ -34,7 +32,8 @@ async function processImage(imagePath, tanggalSurat, emailPenerima, pejabatPenga
             instansi: "Sebutkan instansi pengirim surat?",
             nomorSurat: "Sebutkan nomor surat?",
             perihal: "Sebutkan perihal surat?",
-            kodeRup: "Sebutkan semua kode RUP yang ada, pisahkan dengan koma jika lebih dari satu?"
+            kodeRup: "Sebutkan semua kode RUP yang ada, pisahkan dengan koma jika lebih dari satu?",
+            tanggalSurat: "Sebutkan tanggal surat dengan format YYYY-MM-DD?"
         };
 
         let answers = {};
@@ -53,34 +52,30 @@ async function processImage(imagePath, tanggalSurat, emailPenerima, pejabatPenga
             predefinedInstansi.map(i => i.toLowerCase()),
             { scorer: fuzz.partial_ratio, limit: 1 }
         );
-        
-        if (bestInstansiMatch.length > 0 && bestInstansiMatch[0][1] >= 70) {  // Increase threshold
+
+        if (bestInstansiMatch.length > 0 && bestInstansiMatch[0][1] >= 70) {
             let originalMatch = predefinedInstansi.find(i => i.toLowerCase() === bestInstansiMatch[0][0]);
             answers.instansi = originalMatch || bestInstansiMatch[0][0];
         } else {
             return "⚠️ Instansi tidak ditemukan dalam daftar.";
         }
-        
-        // Match pejabatPengadaan
+
         let bestPejabatMatch = fuzz.extract(
             pejabatPengadaan.toLowerCase(),
             pejabatList.map(p => p.toLowerCase()),
             { scorer: fuzz.partial_ratio, limit: 1 }
         );
-        
-        if (bestPejabatMatch.length > 0 && bestPejabatMatch[0][1] >= 60) {  // Increased threshold to match instansi
+
+        if (bestPejabatMatch.length > 0 && bestPejabatMatch[0][1] >= 60) {
             let originalMatch = pejabatList.find(p => p.toLowerCase() === bestPejabatMatch[0][0]);
             pejabatPengadaan = originalMatch || bestPejabatMatch[0][0];
         } else {
             return "⚠️ Pejabat pengadaan tidak ditemukan dalam daftar.";
         }
-        
 
-        answers.tanggalsurat = tanggalSurat;
         answers.emailpenerima = emailPenerima;
-
+        
         let kodeRupArray = answers.kodeRup ? answers.kodeRup.split(",").map(r => r.trim()) : [];
-
         // console.log("\n📜 Extracted Data:");
         // console.log(`📌 Instansi: ${answers.instansi}`);
         // console.log(`📌 Nomor Surat: ${answers.nomorSurat}`);
@@ -96,7 +91,7 @@ async function processImage(imagePath, tanggalSurat, emailPenerima, pejabatPenga
             + `&entry.51947438=${encodeURIComponent(answers.instansi).replace(/%20/g, "+")}` 
             + `&entry.1344618841=${encodeURIComponent(answers.nomorSurat.replace(/\s+|\.{2,}/g, ""))}`
             + `&entry.1992581915=${encodeURIComponent(answers.perihal.replace(/\.+/g, ""))}`
-            + `&entry.1712954723=${encodeURIComponent(answers.tanggalsurat)}`
+            + `&entry.1712954723=${encodeURIComponent(answers.tanggalSurat)}`
             + `&entry.1732353446=${encodeURIComponent(answers.emailpenerima)}`
             + `&entry.1189723868=${encodeURIComponent(pejabatPengadaan)}`;
 
@@ -115,17 +110,16 @@ async function processImage(imagePath, tanggalSurat, emailPenerima, pejabatPenga
             }
         });
 
-        console.log(`\n🔗 Google Form URL:\n${googleFormURL}`);
-
         return `📜 <b>Data yang Diekstrak:</b>\n`
         + `<blockquote>📌 Instansi: ${answers.instansi}\n`
         + `📌 Nomor Surat: ${answers.nomorSurat}\n`
         + `📌 Perihal: ${answers.perihal}\n`
-        + `📌 Tanggal Surat: ${answers.tanggalsurat}\n`
+        + `📌 Tanggal Surat: ${answers.tanggalSurat}\n`
         + `📌 Email Penerima: ${answers.emailpenerima}\n`
         + `📌 Pejabat Pengadaan: ${pejabatPengadaan}\n`
         + `📌 Kode RUP: ${kodeRupArray.join(", ") || "Tidak ada"}</blockquote>\n\n`
-        + `🔗 <b>Tautan Google Form:</b>\n<blockquote expandable>${googleFormURL}</blockquote>`;
+        + `🔗 <b>Tautan Google Form:</b>\n<blockquote expandable>${googleFormURL}</blockquote>`
+        +'\n\nCek kembali data-data pada link <b>Google Form</b> di atas.';
     
     } catch (error) {
         console.error("❌ Error:", error.message);
