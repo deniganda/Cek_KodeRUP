@@ -1,14 +1,15 @@
 require('dotenv').config({ path: './config.env' });  // Load environment variables from config.env
 const fs = require('fs');
+const path = require('path');
+const { GoogleGenerativeAI } = require("@google/generative-ai");
 const TelegramBot = require('node-telegram-bot-api');
 const { checkKodeRup } = require('./commands/rup');
 const { checkDataRup } = require('./commands/database');
 const { processImage } = require('./commands/sptpp');
 const { processPokja } = require('./commands/sptpokja');
-const Tesseract = require('tesseract.js');
-
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const bot = new TelegramBot(TELEGRAM_BOT_TOKEN, { polling: true });
+const genAI = new GoogleGenerativeAI(process.env.API_KEY);
 
 // Path to the user settings file
 const USER_SETTINGS_FILE = './userSettings.json';
@@ -91,54 +92,19 @@ if (msg.reply_to_message && msg.reply_to_message.photo && text === '/rup') {
 
     // Download the image
     const file = await bot.getFile(fileId);
-    const filePath = `./${file.file_path.split('/').pop()}`;
+    const filePath = path.join('./', file.file_path.split('/').pop());
     await bot.downloadFile(fileId, './');
 
-    // Perform OCR
-    Tesseract.recognize(
-        filePath,
-        'ind',  // Specify Indonesian language
-        {
-            logger: info => console.log(info) // Log progress
-        }
-    ).then(async ({ data: { text } }) => {
-        // Extract 8-digit numbers from the OCR result
-        let kodeRups = text.match(/\b\d{8}\b/g);
-        
-        if (kodeRups) {
-            const extractedLog = `${kodeRups.length} <b>Kode RUP</b> ditemukan\n<blockquote>${kodeRups.join(', ')}</blockquote>`;
-            await bot.sendMessage(chatId, extractedLog, { parse_mode: 'HTML' }); // Send the log to Telegram
-            
-            // Process the extracted codes in the same order as found
-            for (const kodeRup of kodeRups) {
-                console.log(`Processing Kode RUP: ${kodeRup}`);
-                
-                const userTargetKLPD = userSettings[chatId]?.TARGET_KLPD;
-                console.log(`Visiting URL: https://sirup.lkpp.go.id/sirup/home/detailPaketPenyediaPublic2017/${kodeRup}`);
-                
-                const result = await checkKodeRup(kodeRup, userTargetKLPD);
-                await bot.sendMessage(chatId, result, { parse_mode: 'HTML' });
-            }
-        } else {
-            bot.sendMessage(chatId, 'Tidak ada kode RUP yang ditemukan dalam gambar.');
-        }
-
-        // Clean up the downloaded image file
-        fs.unlinkSync(filePath);
-    }).catch(err => {
-        console.error('OCR Error:', err.message);
-        bot.sendMessage(chatId, 'Terjadi kesalahan saat memproses gambar.');
-    });
 } else if (text === '/rup') {
-    // If the message is just '/rup' and not a reply to an image, send the instructions
-    bot.sendMessage(chatId, 
+    // Send instructions
+    bot.sendMessage(chatId,
         'Silakan masukkan kode RUP setelah perintah ini, pastikan setiap kode terdiri dari 8 digit angka dan dipisahkan dengan spasi.\n' +
-        '<b>Contoh:</b>\n' + 
+        '<b>Contoh:</b>\n' +
         '<blockquote>/rup 12341234.</blockquote>\n' +
         '<blockquote>/rup 12341234 56785678.</blockquote>\n' +
         '<blockquote>/rup 12341234 56785678 11112233.</blockquote>\n',
         { parse_mode: 'HTML' }
-      );
+    );
     }
 });
 
@@ -251,122 +217,191 @@ async function handleUserResponse(chatId, text) {
     }
 }
 
-
-
 // Command to test if the bot is working
 bot.onText(/\/ping/, (msg) => {
     const chatId = msg.chat.id;
     bot.sendMessage(chatId, "Bot berjalan dengan baik.");
 });
 
-// Command to check RUP codes
+// Function: Extract text from image using Gemini
+async function extractTextFromImage(filePath) {
+    const imageBuffer = fs.readFileSync(filePath);
+    const imageBase64 = imageBuffer.toString('base64');
+
+    const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+    const result = await model.generateContent([
+        { inlineData: { mimeType: "image/jpeg", data: imageBase64 } },
+        { text: "Ekstrak teks dari gambar ini dalam Bahasa Indonesia. Jangan beri tambahan teks lain, hanya ekstrak teksnya saja." }
+    ]);
+
+    const response = await result.response;
+    return response.text();
+}
+
+// /rup handler
 bot.onText(/\/rup(?:\s+(.+))?/, async (msg, match) => {
     const chatId = msg.chat.id;
     const searchText = match[1] ? match[1].trim() : '';
-    const kodeRups = searchText.split(' ').filter(code => code !== '');
-    if (!kodeRups.every(code => /^\d{8}$/.test(code))) {
-        bot.sendMessage(chatId, 
-            'Terdapat satu atau lebih Kode RUP yang tidak terdiri dari 8 digit angka, pastikan setiap kode terdiri dari 8 digit angka dan dipisahkan dengan spasi.\n' +
-            '<b>Contoh:</b>\n' + 
-            '<blockquote>/rup 12341234.</blockquote>\n' +
-            '<blockquote>/rup 12341234 56785678.</blockquote>\n' +
-            '<blockquote>/rup 12341234 56785678 11112233.</blockquote>\n', // Close the string here
-            { parse_mode: 'HTML' } // Pass options as a separate argument
-        );
-        return;
-    }
 
-    const userTargetKLPD = userSettings[chatId]?.TARGET_KLPD;
-    if (!userTargetKLPD) {
-        bot.sendMessage(chatId, 'Anda belum menetapkan TARGET_KLPD. Silakan tetapkan dengan menggunakan perintah /set_klpd.');
-        return;
-    }
+    // If it's a reply to a photo
+    if (msg.reply_to_message?.photo && !searchText) {
+        const fileId = msg.reply_to_message.photo.slice(-1)[0].file_id;
+        const file = await bot.getFile(fileId);
+        const tempDir = './tmp';
+        if (!fs.existsSync(tempDir)) fs.mkdirSync(tempDir);
 
-    try {
-        for (const kodeRup of kodeRups) {
-            const result = await checkKodeRup(kodeRup, userTargetKLPD);
-            await bot.sendMessage(chatId, result, { parse_mode: 'HTML' });
-            await new Promise(resolve => setTimeout(resolve, 100));  // 0.1-second delay between messages
+        const filePath = path.join(tempDir, file.file_path.split('/').pop());
+        await bot.downloadFile(fileId, tempDir);
+
+        try {
+            const extractedText = await extractTextFromImage(filePath);
+
+            if (!extractedText || extractedText.trim().length === 0) {
+                await bot.sendMessage(chatId, "⚠️ Tidak ada teks yang ditemukan dalam gambar.");
+                return;
+            }
+
+            const kodeRups = [...new Set((extractedText.match(/\b\d{8}\b/g) || []))];
+
+            if (!kodeRups.length) {
+                await bot.sendMessage(chatId, 'Tidak ada kode RUP yang ditemukan dalam teks hasil OCR.');
+                return;
+            }
+
+            const log = `${kodeRups.length} <b>Kode RUP</b> ditemukan\n<blockquote>${kodeRups.join(', ')}</blockquote>`;
+            await bot.sendMessage(chatId, log, { parse_mode: 'HTML' });
+
+            const userTargetKLPD = userSettings[chatId]?.TARGET_KLPD;
+            if (!userTargetKLPD) {
+                await bot.sendMessage(chatId, 'Anda belum menetapkan TARGET_KLPD. Silakan tetapkan dengan perintah /set_klpd.');
+                return;
+            }
+
+            for (const kodeRup of kodeRups) {
+                const result = await checkKodeRup(kodeRup, userTargetKLPD);
+                await bot.sendMessage(chatId, result, { parse_mode: 'HTML' });
+                await new Promise(resolve => setTimeout(resolve, 100));
+            }
+
+        } catch (err) {
+            console.error("Gemini OCR Error:", err.message);
+            await bot.sendMessage(chatId, "❌ Gagal memproses gambar dengan Gemini.");
+        } finally {
+            fs.unlink(filePath, () => {});
         }
-    } catch (error) {
-        console.error('Error:', error.message);
-        bot.sendMessage(chatId, 'Terjadi kesalahan, silakan coba kembali.');
+
+    // If it's regular /rup with text input
+    } else if (searchText) {
+        const kodeRups = searchText.split(' ').filter(code => code !== '');
+
+        if (!kodeRups.every(code => /^\d{8}$/.test(code))) {
+            await bot.sendMessage(chatId,
+                'Terdapat satu atau lebih Kode RUP yang tidak terdiri dari 8 digit angka, pastikan setiap kode terdiri dari 8 digit angka dan dipisahkan dengan spasi.\n' +
+                '<b>Contoh:</b>\n' +
+                '<blockquote>/rup 12341234</blockquote>\n' +
+                '<blockquote>/rup 12341234 56785678</blockquote>\n' +
+                '<blockquote>/rup 12341234 56785678 11112233</blockquote>',
+                { parse_mode: 'HTML' }
+            );
+            return;
+        }
+
+        const userTargetKLPD = userSettings[chatId]?.TARGET_KLPD;
+        if (!userTargetKLPD) {
+            await bot.sendMessage(chatId, 'Anda belum menetapkan TARGET_KLPD. Silakan tetapkan dengan perintah /set_klpd.');
+            return;
+        }
+
+        try {
+            for (const kodeRup of kodeRups) {
+                const result = await checkKodeRup(kodeRup, userTargetKLPD);
+                await bot.sendMessage(chatId, result, { parse_mode: 'HTML' });
+                await new Promise(resolve => setTimeout(resolve, 100));
+            }
+        } catch (error) {
+            console.error('Error:', error.message);
+            await bot.sendMessage(chatId, 'Terjadi kesalahan, silakan coba kembali.');
+        }
+
+    // If just /rup with no text or image
+    } else {
+        await bot.sendMessage(chatId,
+            'Silakan masukkan kode RUP setelah perintah ini, atau balas gambar yang berisi kode RUP dengan perintah /rup.\n' +
+            '<b>Contoh:</b>\n' +
+            '<blockquote>/rup 12341234</blockquote>\n' +
+            '<blockquote>/rup 12341234 56785678</blockquote>\n' +
+            '<blockquote>/rup 12341234 56785678 11112233</blockquote>',
+            { parse_mode: 'HTML' }
+        );
     }
 });
 
-// Command to check data RUP
-bot.onText(/\/cekdata/, async (msg) => {
+// /cekdata command with Gemini image OCR support
+bot.onText(/\/cekdata(?:\s+(.+))?/, async (msg, match) => {
     const chatId = msg.chat.id;
-    const kodeRups = msg.text.split(' ').slice(1);
-    if (!kodeRups.every(code => /^\d{8}$/.test(code))) {
-      bot.sendMessage(chatId, 
-        'Terdapat satu atau lebih Kode RUP yang tidak terdiri dari 8 digit angka, pastikan setiap kode terdiri dari 8 digit angka dan dipisahkan dengan spasi.\n' +
+    const textInput = match[1]?.trim();
+    let kodeRups = [];
+  
+    if (textInput) {
+      kodeRups = textInput.split(/\s+/);
+      const invalid = kodeRups.some(code => !/^\d{8}$/.test(code));
+  
+      if (invalid) {
+        return bot.sendMessage(chatId,
+          'Terdapat satu atau lebih Kode RUP yang tidak terdiri dari 8 digit angka, pastikan setiap kode terdiri dari 8 digit angka dan dipisahkan dengan spasi.\n' +
+          '<b>Contoh:</b>\n' + 
+          '<blockquote>/cekdata 12341234.</blockquote>\n' +
+          '<blockquote>/cekdata 12341234 56785678.</blockquote>\n' +
+          '<blockquote>/cekdata 12341234 56785678 11112233.</blockquote>\n',
+          { parse_mode: 'HTML' }
+        );
+      }
+    } else if (msg.reply_to_message?.photo) {
+      const fileId = msg.reply_to_message.photo.slice(-1)[0].file_id;
+      const file = await bot.getFile(fileId);
+      const filePath = `./${file.file_path.split('/').pop()}`;
+      await bot.downloadFile(fileId, './');
+  
+      try {
+        const extractedText = await extractTextFromImage(filePath);
+        kodeRups = extractedText.match(/\b\d{8}\b/g) || [];
+  
+        if (kodeRups.length > 0) {
+          const log = `${kodeRups.length} <b>Kode RUP</b> ditemukan\n<blockquote>${kodeRups.join(', ')}</blockquote>`;
+          await bot.sendMessage(chatId, log, { parse_mode: 'HTML' });
+        } else {
+          return bot.sendMessage(chatId, 'Tidak ada kode RUP yang ditemukan dalam gambar.', { parse_mode: 'HTML' });
+        }
+      } catch (err) {
+        console.error('OCR Error:', err.message);
+        return bot.sendMessage(chatId, 'Terjadi kesalahan saat memproses gambar.', { parse_mode: 'HTML' });
+      } finally {
+        if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+      }
+    }
+  
+    if (kodeRups.length === 0) {
+      return bot.sendMessage(chatId,
+        'Silakan masukkan kode RUP setelah perintah ini atau balas gambar dengan perintah ini.\n' +
         '<b>Contoh:</b>\n' + 
         '<blockquote>/cekdata 12341234.</blockquote>\n' +
         '<blockquote>/cekdata 12341234 56785678.</blockquote>\n' +
         '<blockquote>/cekdata 12341234 56785678 11112233.</blockquote>\n',
         { parse_mode: 'HTML' }
       );
-      return;
     }
+  
+    // Process valid Kode RUPs
     try {
       for (const kodeRup of kodeRups) {
+        console.log(`Processing Kode RUP: ${kodeRup}`);
         const result = await checkDataRup(kodeRup);
         await bot.sendMessage(chatId, result, { parse_mode: 'HTML' });
-        await new Promise(resolve => setTimeout(resolve, 100));  // 0.1-second delay between messages
+        await new Promise(resolve => setTimeout(resolve, 100));
       }
     } catch (error) {
       console.error('Error:', error.message);
       bot.sendMessage(chatId, 'Terjadi kesalahan, silakan coba kembali.', { parse_mode: 'HTML' });
     }
-    if (msg.reply_to_message && msg.reply_to_message.photo && msg.text === '/cekdata') {
-      const fileId = msg.reply_to_message.photo[msg.reply_to_message.photo.length - 1].file_id;
-
-      // Download the image
-      const file = await bot.getFile(fileId);
-      const filePath = `./${file.file_path.split('/').pop()}`;
-      await bot.downloadFile(fileId, './'); 
-
-      // Perform OCR
-      Tesseract.recognize(
-        filePath,
-        'ind',  // Specify Indonesian language
-        {
-          logger: info => console.log(info) // Log progress
-        }
-      ).then(async ({ data: { text } }) => {
-        // Extract 8-digit numbers from the OCR result
-        let kodeRups = text.match(/\b\d{8}\b/g);
-        if (kodeRups) {
-          const extractedLog = `${kodeRups.length} <b>Kode RUP</b> ditemukan\n<blockquote>${kodeRups.join(', ')}</blockquote>`;
-          await bot.sendMessage(chatId, extractedLog, { parse_mode: 'HTML' }); // Send the log to Telegram  
-
-          // Process the extracted codes in the same order as found
-          for (const kodeRup of kodeRups) {
-            console.log(`Processing Kode RUP: ${kodeRup}`);
-            const result = await checkDataRup(kodeRup);
-            await bot.sendMessage(chatId, result, { parse_mode: 'HTML' });
-          }
-        } else {
-          bot.sendMessage(chatId, 'Tidak ada kode RUP yang ditemukan dalam gambar.', { parse_mode: 'HTML' });
-        }
+  });
   
-        // Clean up the downloaded image file
-        fs.unlinkSync(filePath);
-      }).catch(err => {
-        console.error('OCR Error:', err.message);
-        bot.sendMessage(chatId, 'Terjadi kesalahan saat memproses gambar.', { parse_mode: 'HTML' });
-      });
-
-    } else if (msg.text === '/cekdata') {
-        // If the message is just '/cekdata' and not a reply to an image, send the instructions
-        bot.sendMessage(chatId, 
-            'Silakan masukkan kode RUP setelah perintah ini, pastikan setiap kode terdiri dari 8 digit angka dan dipisahkan dengan spasi.\n' +
-            '<b>Contoh:</b>\n' + 
-            '<blockquote>/cekdata 12341234.</blockquote>\n' +
-            '<blockquote>/cekdata 12341234 56785678.</blockquote>\n' +
-            '<blockquote>/cekdata 12341234 56785678 111122 33.</blockquote>\n',
-            { parse_mode: 'HTML' }
-          );
-        }
-    });

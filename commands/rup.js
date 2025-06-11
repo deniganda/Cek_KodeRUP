@@ -198,9 +198,6 @@ function formatSumberDana(text) {
     return formattedText.trim();
 }
 
-
-
-
 function formatResponse(data, type) {
     const formatter = new Intl.NumberFormat('id-ID', {
         style: 'currency',
