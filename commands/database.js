@@ -12,7 +12,7 @@ const sheets = google.sheets({ version: 'v4', auth });
 
 // Set up the spreadsheet ID and sheet names
 const spreadsheetId = '1y7yvylJYuqZCLWSX22CGXDDS5YIZyFWKXIBieSDOba0';
-const sheetNames = ['Penyedia2025', 'Penyedia2026'];
+const sheetNames = ['Penyedia', 'Penyedia2026'];
 const columnLetters = ['H', 'H'];
 
 // Function to look up a value in the spreadsheet
